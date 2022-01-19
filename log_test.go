@@ -12,7 +12,7 @@ import (
 	"github.com/eluv-io/log-go"
 	"github.com/stretchr/testify/require"
 
-	"github.com/apex/log/handlers/memory"
+	"github.com/eluv-io/apexlog-go/handlers/memory"
 	"github.com/stretchr/testify/assert"
 )
 
