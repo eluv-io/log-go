@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	apex "github.com/apex/log"
+	apex "github.com/eluv-io/apexlog-go"
 	"github.com/stretchr/testify/require"
 )
 

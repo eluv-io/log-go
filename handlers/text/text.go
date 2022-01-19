@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/apex/log"
+	"github.com/eluv-io/apexlog-go"
 	"github.com/eluv-io/utc-go"
 )
 

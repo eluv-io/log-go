@@ -3,8 +3,8 @@ package log
 import (
 	"testing"
 
-	apex "github.com/apex/log"
-	"github.com/apex/log/handlers/memory"
+	apex "github.com/eluv-io/apexlog-go"
+	"github.com/eluv-io/apexlog-go/handlers/memory"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
