@@ -1,5 +1,8 @@
 # Logging with `eluv-io/log-go`
 
+[![](https://github.com/eluv-io/log-go/actions/workflows/build.yaml/badge.svg)](https://github.com/eluv-io/log-go/actions?query=workflow%3Abuild)
+[![CodeQL](https://github.com/eluv-io/log-go/actions/workflows/codeql-analysis.yaml/badge.svg)](https://github.com/eluv-io/log-go/actions/workflows/codeql-analysis.yaml)
+
 The package `eluv-io/log-go` makes logging super simple, efficient, and consistent.
 
 ```go
