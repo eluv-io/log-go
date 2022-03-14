@@ -52,7 +52,7 @@ var Intensities = [...]int{
 	log.FatalLevel: bold,
 }
 
-var Strings = [...]string{
+var Levels = [...]string{
 	log.TraceLevel: "TRCE",
 	log.DebugLevel: "DBG ",
 	log.InfoLevel:  "    ",
@@ -68,7 +68,7 @@ type Handler struct {
 	Writer  io.Writer
 }
 
-// New handler.
+// New creates a new console handler.
 func New(w io.Writer) *Handler {
 	return &Handler{
 		Writer: w,
@@ -89,7 +89,7 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	color := Colors[e.Level]
 	intensity := Intensities[e.Level]
 	colored := !h.noColor
-	level := Strings[e.Level]
+	level := Levels[e.Level]
 
 	d := time.Since(start)
 	ts := d / time.Second

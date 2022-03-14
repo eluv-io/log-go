@@ -22,7 +22,7 @@ type Handler struct {
 	Writer io.Writer
 }
 
-// New handler.
+// New creates a new raw handler.
 func New(w io.Writer) *Handler {
 	return &Handler{
 		Writer: w,
@@ -46,8 +46,8 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 
 	sb.Write([]byte{'\n'})
 	raw := e.Fields.Get("raw")
-	if raw != "" {
-		_, _ = fmt.Fprintf(sb, "\n%v\n", raw)
+	if raw != "" && raw != nil {
+		_, _ = fmt.Fprintf(sb, "%v\n\n", raw)
 	}
 
 	h.mu.Lock()
