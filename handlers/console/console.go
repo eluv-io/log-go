@@ -10,13 +10,11 @@ import (
 	"time"
 
 	"github.com/eluv-io/apexlog-go"
+	"github.com/eluv-io/utc-go"
 )
 
 // Default handler outputting to stderr.
 var Default = New(os.Stderr)
-
-// start time.
-var start = time.Now()
 
 // colors.
 const (
@@ -52,7 +50,7 @@ var Intensities = [...]int{
 	log.FatalLevel: bold,
 }
 
-var Strings = [...]string{
+var Levels = [...]string{
 	log.TraceLevel: "TRCE",
 	log.DebugLevel: "DBG ",
 	log.InfoLevel:  "    ",
@@ -63,14 +61,16 @@ var Strings = [...]string{
 
 // Handler implementation.
 type Handler struct {
+	start   utc.UTC
 	noColor bool
 	mu      sync.Mutex
 	Writer  io.Writer
 }
 
-// New handler.
+// New creates a new console handler.
 func New(w io.Writer) *Handler {
 	return &Handler{
+		start:  utc.Now(),
 		Writer: w,
 	}
 }
@@ -89,9 +89,9 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	color := Colors[e.Level]
 	intensity := Intensities[e.Level]
 	colored := !h.noColor
-	level := Strings[e.Level]
+	level := Levels[e.Level]
 
-	d := time.Since(start)
+	d := utc.Since(h.start)
 	ts := d / time.Second
 	tms := (d - ts*time.Second) / time.Millisecond
 	if colored {
