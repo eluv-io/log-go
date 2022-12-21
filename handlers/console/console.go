@@ -65,7 +65,7 @@ type Handler struct {
 	noColor       bool
 	mu            sync.Mutex
 	Writer        io.Writer
-	UseTimestamps bool
+	useTimestamps bool
 }
 
 // New creates a new console handler.
@@ -74,6 +74,12 @@ func New(w io.Writer) *Handler {
 		start:  utc.Now(),
 		Writer: w,
 	}
+}
+
+func (h *Handler) UseTimestamps(use bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.useTimestamps = use
 }
 
 func (h *Handler) WithColor(colored bool) {
