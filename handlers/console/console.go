@@ -61,7 +61,7 @@ var Levels = [...]string{
 
 // Handler implementation.
 type Handler struct {
-	start   utc.UTC
+	Start   utc.UTC
 	noColor bool
 	mu      sync.Mutex
 	Writer  io.Writer
@@ -70,7 +70,7 @@ type Handler struct {
 // New creates a new console handler.
 func New(w io.Writer) *Handler {
 	return &Handler{
-		start:  utc.Now(),
+		Start:  utc.Now(),
 		Writer: w,
 	}
 }
@@ -91,7 +91,7 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	colored := !h.noColor
 	level := Levels[e.Level]
 
-	d := utc.Since(h.start)
+	d := utc.Since(h.Start)
 	ts := d / time.Second
 	tms := (d - ts*time.Second) / time.Millisecond
 	if colored {
