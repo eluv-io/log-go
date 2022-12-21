@@ -103,7 +103,11 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 		}
 		//fmt.Fprintf(sb, "\033[%dm%-1s\033[0m % 4d.%03d %-20s", color, level, ts, tms, e.Message)
 	} else {
-		_, _ = fmt.Fprintf(sb, "% 4d.%03d %-5s %-20s", ts, tms, level, e.Message)
+		if h.UseTimestamps {
+			_, _ = fmt.Fprintf(sb, "%s %-5s %-20s", utc.Now().String(), level, e.Message)
+		} else {
+			_, _ = fmt.Fprintf(sb, "% 4d.%03d %-5s %-20s", ts, tms, level, e.Message)
+		}
 	}
 
 	for _, field := range e.Fields {
