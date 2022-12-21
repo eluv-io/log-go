@@ -76,6 +76,11 @@ func New(w io.Writer) *Handler {
 	}
 }
 
+// UseTimestamps enables or disables timestamps instead of offsets in the log output.
+// Usage:
+//     if lh, ok := log.Handler().(*console.Handler); ok {
+//         lh.UseTimestamps(true)
+//     }
 func (h *Handler) UseTimestamps(use bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
