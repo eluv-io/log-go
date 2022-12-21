@@ -95,7 +95,11 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	ts := d / time.Second
 	tms := (d - ts*time.Second) / time.Millisecond
 	if colored {
-		_, _ = fmt.Fprintf(sb, "% 4d.%03d \033[%d;%dm%-5s\033[0m %-20s", ts, tms, intensity, color, level, e.Message)
+		if h.Start == utc.Zero {
+			_, _ = fmt.Fprintf(sb, "%s \033[%d;%dm%-5s\033[0m %-20s", utc.Now().String(), intensity, color, level, e.Message)
+		} else {
+			_, _ = fmt.Fprintf(sb, "% 4d.%03d \033[%d;%dm%-5s\033[0m %-20s", ts, tms, intensity, color, level, e.Message)
+		}
 		//fmt.Fprintf(sb, "\033[%dm%-1s\033[0m % 4d.%03d %-20s", color, level, ts, tms, e.Message)
 	} else {
 		_, _ = fmt.Fprintf(sb, "% 4d.%03d %-5s %-20s", ts, tms, level, e.Message)
