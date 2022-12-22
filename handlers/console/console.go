@@ -61,10 +61,11 @@ var Levels = [...]string{
 
 // Handler implementation.
 type Handler struct {
-	start   utc.UTC
-	noColor bool
-	mu      sync.Mutex
-	Writer  io.Writer
+	start         utc.UTC
+	noColor       bool
+	mu            sync.Mutex
+	Writer        io.Writer
+	useTimestamps bool
 }
 
 // New creates a new console handler.
@@ -75,10 +76,20 @@ func New(w io.Writer) *Handler {
 	}
 }
 
-func (h *Handler) WithColor(colored bool) {
+// WithTimestamps enables or disables timestamps instead of offsets in the log output.
+func (h *Handler) WithTimestamps(use bool) *Handler {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.useTimestamps = use
+	return h
+}
+
+// WithColor enables or disables colored log output.
+func (h *Handler) WithColor(colored bool) *Handler {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.noColor = !colored
+	return h
 }
 
 // HandleLog implements log.Handler.
@@ -91,14 +102,20 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	colored := !h.noColor
 	level := Levels[e.Level]
 
-	d := utc.Since(h.start)
-	ts := d / time.Second
-	tms := (d - ts*time.Second) / time.Millisecond
-	if colored {
-		_, _ = fmt.Fprintf(sb, "% 4d.%03d \033[%d;%dm%-5s\033[0m %-20s", ts, tms, intensity, color, level, e.Message)
-		//fmt.Fprintf(sb, "\033[%dm%-1s\033[0m % 4d.%03d %-20s", color, level, ts, tms, e.Message)
+	var timestamp string
+	if h.useTimestamps {
+		timestamp = utc.Now().String()
 	} else {
-		_, _ = fmt.Fprintf(sb, "% 4d.%03d %-5s %-20s", ts, tms, level, e.Message)
+		d := utc.Since(h.start)
+		ts := d / time.Second
+		tms := (d - ts*time.Second) / time.Millisecond
+		timestamp = fmt.Sprintf("% 4d.%03d", ts, tms)
+	}
+
+	if colored {
+		_, _ = fmt.Fprintf(sb, "%s \033[%d;%dm%-5s\033[0m %-20s", timestamp, intensity, color, level, e.Message)
+	} else {
+		_, _ = fmt.Fprintf(sb, "%s %-5s %-20s", timestamp, level, e.Message)
 	}
 
 	for _, field := range e.Fields {
