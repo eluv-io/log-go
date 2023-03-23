@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -78,14 +77,6 @@ func New(w io.Writer) *Handler {
 	}
 }
 
-// WithCaller enables or disables caller info in the log output.
-func (h *Handler) WithCaller(use bool) *Handler {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.includeCaller = use
-	return h
-}
-
 // WithTimestamps enables or disables timestamps instead of offsets in the log output.
 func (h *Handler) WithTimestamps(use bool) *Handler {
 	h.mu.Lock()
@@ -111,10 +102,6 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	intensity := Intensities[e.Level]
 	colored := !h.noColor
 	level := Levels[e.Level]
-
-	if h.includeCaller {
-		e.Fields = append(e.Fields, &log.Field{Name: "caller", Value: h.caller(4)})
-	}
 
 	var timestamp string
 	if h.useTimestamps {
@@ -148,17 +135,4 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	_, _ = h.Writer.Write([]byte(sb.String()))
 
 	return nil
-}
-
-// caller returns the file and line number of the caller, formatted as "file:line".
-func (h *Handler) caller(framesToSkip int) string {
-	_, file, line, ok := runtime.Caller(framesToSkip + 1)
-	if !ok {
-		return "?"
-	}
-
-	files := strings.Split(file, "/")
-	file = files[len(files)-1]
-
-	return fmt.Sprintf("%s:%d", file, line)
 }

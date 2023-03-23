@@ -36,6 +36,7 @@
 package log
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"reflect"
@@ -261,6 +262,9 @@ func mergeConfig(c *Config, target *Config) {
 	if c.GoRoutineID != nil {
 		b := *c.GoRoutineID
 		target.GoRoutineID = &b
+	}
+	if c.Caller {
+		target.Caller = true
 	}
 }
 
@@ -523,6 +527,11 @@ func (l *Log) fields(args []interface{}) []interface{} {
 	if l.config.GoRoutineID != nil && *l.config.GoRoutineID {
 		args = append(args, "gid", goID())
 	}
+
+	if l.config.Caller {
+		args = append(args, "caller", caller(4))
+	}
+
 	return args
 }
 
@@ -563,4 +572,17 @@ func CloseLogFiles() {
 // goID returns the goroutine id of current goroutine
 func goID() int64 {
 	return gls.GoID()
+}
+
+// caller returns the file and line number of the caller, formatted as "file:line".
+func caller(framesToSkip int) string {
+	_, file, line, ok := runtime.Caller(framesToSkip + 1)
+	if !ok {
+		return "?"
+	}
+
+	files := strings.Split(file, "/")
+	file = files[len(files)-1]
+
+	return fmt.Sprintf("%s:%d", file, line)
 }
