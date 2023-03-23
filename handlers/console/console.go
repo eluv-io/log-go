@@ -113,7 +113,7 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	level := Levels[e.Level]
 
 	if h.includeCaller {
-		e.Fields = append(e.Fields, &log.Field{Name: "caller", Value: h.caller(3)})
+		e.Fields = append(e.Fields, &log.Field{Name: "caller", Value: h.caller(4)})
 	}
 
 	var timestamp string
@@ -151,7 +151,7 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 }
 
 func (h *Handler) caller(extraSkip int) string {
-	file, line := h.trace(extraSkip + 2)
+	file, line := h.trace(extraSkip + 2) // 2: us plus trace()
 	return fmt.Sprintf("%s:%d", file, line)
 }
 
