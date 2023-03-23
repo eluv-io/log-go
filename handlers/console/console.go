@@ -150,19 +150,15 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	return nil
 }
 
-func (h *Handler) caller(extraSkip int) string {
-	file, line := h.trace(extraSkip + 2) // 2: us plus trace()
-	return fmt.Sprintf("%s:%d", file, line)
-}
-
-func (h *Handler) trace(skip int) (string, int) {
-	_, file, line, ok := runtime.Caller(skip)
+// caller returns the file and line number of the caller, formatted as "file:line".
+func (h *Handler) caller(framesToSkip int) string {
+	_, file, line, ok := runtime.Caller(framesToSkip + 1)
 	if !ok {
-		return "?", 0
+		return "?"
 	}
 
 	files := strings.Split(file, "/")
 	file = files[len(files)-1]
 
-	return file, line
+	return fmt.Sprintf("%s:%d", file, line)
 }
