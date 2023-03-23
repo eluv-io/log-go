@@ -113,7 +113,7 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	level := Levels[e.Level]
 
 	if h.includeCaller {
-		e.Fields = append(e.Fields, &log.Field{Name: "caller", Value: h.caller(2)})
+		e.Fields = append(e.Fields, &log.Field{Name: "caller", Value: h.caller(3)})
 	}
 
 	var timestamp string
