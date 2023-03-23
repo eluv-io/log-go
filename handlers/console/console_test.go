@@ -65,6 +65,18 @@ func TestHandler(t *testing.T) {
 				"1970-01-01T00:00:00.000Z WARN  warn message         field1=value1 field2=value2\n" +
 				"1970-01-01T00:00:00.000Z ERR!  error message        field1=value1 field2=value2\n",
 		},
+		{
+			name: "timestamp, color, caller",
+			adapt: func(h *console.Handler) {
+				h.WithTimestamps(true).WithColor(false).WithCaller(true)
+			},
+			want: "" +
+				"1970-01-01T00:00:00.000Z TRCE  trace message        field1=value1 field2=value2 caller=console_test.go:96\n" +
+				"1970-01-01T00:00:00.000Z DBG   debug message        field1=value1 field2=value2 caller=console_test.go:97\n" +
+				"1970-01-01T00:00:00.000Z       info message         field1=value1 field2=value2 caller=console_test.go:98\n" +
+				"1970-01-01T00:00:00.000Z WARN  warn message         field1=value1 field2=value2 caller=console_test.go:99\n" +
+				"1970-01-01T00:00:00.000Z ERR!  error message        field1=value1 field2=value2 caller=console_test.go:100\n",
+		},
 	}
 
 	for _, test := range tests {
