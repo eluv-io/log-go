@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -66,6 +67,7 @@ type Handler struct {
 	mu            sync.Mutex
 	Writer        io.Writer
 	useTimestamps bool
+	includeCaller bool
 }
 
 // New creates a new console handler.
@@ -74,6 +76,14 @@ func New(w io.Writer) *Handler {
 		start:  utc.Now(),
 		Writer: w,
 	}
+}
+
+// WithCaller enables or disables caller info in the log output.
+func (h *Handler) WithCaller(use bool) *Handler {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.includeCaller = use
+	return h
 }
 
 // WithTimestamps enables or disables timestamps instead of offsets in the log output.
@@ -101,6 +111,10 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	intensity := Intensities[e.Level]
 	colored := !h.noColor
 	level := Levels[e.Level]
+
+	if h.includeCaller {
+		e.Fields = append(e.Fields, &log.Field{Name: "caller", Value: h.caller(1)})
+	}
 
 	var timestamp string
 	if h.useTimestamps {
@@ -134,4 +148,21 @@ func (h *Handler) HandleLog(e *log.Entry) error {
 	_, _ = h.Writer.Write([]byte(sb.String()))
 
 	return nil
+}
+
+func (h *Handler) caller(extraSkip int) string {
+	file, line := h.trace(extraSkip + 2)
+	return fmt.Sprintf("%s:%d", file, line)
+}
+
+func (h *Handler) trace(skip int) (string, int) {
+	_, file, line, ok := runtime.Caller(skip)
+	if !ok {
+		return "?", 0
+	}
+
+	files := strings.Split(file, "/")
+	file = files[len(files)-1]
+
+	return file, line
 }
