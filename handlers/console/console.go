@@ -66,7 +66,6 @@ type Handler struct {
 	mu            sync.Mutex
 	Writer        io.Writer
 	useTimestamps bool
-	includeCaller bool
 }
 
 // New creates a new console handler.
