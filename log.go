@@ -529,7 +529,7 @@ func (l *Log) fields(args []interface{}) []interface{} {
 	}
 
 	if l.config.Caller {
-		args = append(args, "caller", caller(4))
+		args = append(args, "caller", caller(2))
 	}
 
 	return args
