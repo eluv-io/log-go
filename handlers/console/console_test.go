@@ -13,16 +13,18 @@ import (
 
 func TestHandler(t *testing.T) {
 	defer utc.MockNow(utc.UnixMilli(0))()
+	falseVal := false
+	trueVal := true
 
 	tests := []struct {
 		name   string
-		caller bool
+		caller *bool
 		adapt  func(h *console.Handler)
 		want   string
 	}{
 		{
 			name:   "default: offset, color",
-			caller: false,
+			caller: &falseVal,
 			adapt:  func(h *console.Handler) {},
 			want: "" +
 				"   0.000 \033[0;37mTRCE \033[0m trace message        field1=\033[0;37mvalue1\033[0m field2=\033[0;37mvalue2\033[0m\n" +
@@ -33,7 +35,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			name:   "offset, no color",
-			caller: false,
+			caller: &falseVal,
 			adapt: func(h *console.Handler) {
 				h.WithColor(false)
 			},
@@ -46,7 +48,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			name:   "timestamp, color",
-			caller: false,
+			caller: &falseVal,
 			adapt: func(h *console.Handler) {
 				h.WithTimestamps(true)
 			},
@@ -59,7 +61,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			name:   "timestamp, no color",
-			caller: false,
+			caller: &falseVal,
 			adapt: func(h *console.Handler) {
 				h.WithTimestamps(true).WithColor(false)
 			},
@@ -72,7 +74,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			name:   "timestamp, color, caller",
-			caller: true,
+			caller: &trueVal,
 			adapt: func(h *console.Handler) {
 				h.WithTimestamps(true).WithColor(false)
 			},
@@ -87,11 +89,10 @@ func TestHandler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fls := false
 			lg := log.New(&log.Config{
 				Level:       "trace",
 				Handler:     "console",
-				GoRoutineID: &fls,
+				GoRoutineID: &falseVal,
 				Caller:      test.caller,
 			})
 

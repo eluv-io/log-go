@@ -1,7 +1,8 @@
 package log
 
 var (
-	trueValue = true
+	trueValue  = true
+	falseValue = false
 )
 
 // NewConfig returns a new config instance, initialized with default values
@@ -23,7 +24,7 @@ type Config struct {
 	GoRoutineID *bool `json:"go_routine_id,omitempty"`
 
 	// Include caller info (file:line) as 'caller' in logged fields
-	Caller bool `json:"caller,omitempty"`
+	Caller *bool `json:"caller,omitempty"`
 
 	// Named contains the configuration of named loggers.
 	// Any nested "Named" elements are ignored.
@@ -34,7 +35,7 @@ func (c *Config) InitDefaults() *Config {
 	c.Level = "normal"
 	c.Handler = "json"
 	c.GoRoutineID = &trueValue
-	c.Caller = false
+	c.Caller = &falseValue
 	return c
 }
 

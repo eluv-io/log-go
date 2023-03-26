@@ -263,8 +263,8 @@ func mergeConfig(c *Config, target *Config) {
 		b := *c.GoRoutineID
 		target.GoRoutineID = &b
 	}
-	if c.Caller {
-		target.Caller = true
+	if c.Caller != nil {
+		target.Caller = c.Caller
 	}
 }
 
@@ -528,7 +528,7 @@ func (l *Log) fields(args []interface{}) []interface{} {
 		args = append(args, "gid", goID())
 	}
 
-	if l.config.Caller {
+	if l.config.Caller != nil && *l.config.Caller {
 		args = append(args, "caller", caller(2))
 	}
 
