@@ -79,11 +79,11 @@ func TestHandler(t *testing.T) {
 				h.WithTimestamps(true).WithColor(false)
 			},
 			want: "" +
-				"1970-01-01T00:00:00.000Z TRCE  trace message        field1=value1 field2=value2 caller=console_test.go:103\n" +
-				"1970-01-01T00:00:00.000Z DBG   debug message        field1=value1 field2=value2 caller=console_test.go:104\n" +
-				"1970-01-01T00:00:00.000Z       info message         field1=value1 field2=value2 caller=console_test.go:105\n" +
-				"1970-01-01T00:00:00.000Z WARN  warn message         field1=value1 field2=value2 caller=console_test.go:106\n" +
-				"1970-01-01T00:00:00.000Z ERR!  error message        field1=value1 field2=value2 caller=console_test.go:107\n",
+				"1970-01-01T00:00:00.000Z TRCE  trace message        field1=value1 field2=value2 caller=console_test.go:104\n" +
+				"1970-01-01T00:00:00.000Z DBG   debug message        field1=value1 field2=value2 caller=console_test.go:105\n" +
+				"1970-01-01T00:00:00.000Z       info message         field1=value1 field2=value2 caller=console_test.go:106\n" +
+				"1970-01-01T00:00:00.000Z WARN  warn message         field1=value1 field2=value2 caller=console_test.go:107\n" +
+				"1970-01-01T00:00:00.000Z ERR!  error message        field1=value1 field2=value2 caller=console_test.go:108\n",
 		},
 	}
 
