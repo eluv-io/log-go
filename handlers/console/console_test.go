@@ -13,15 +13,19 @@ import (
 
 func TestHandler(t *testing.T) {
 	defer utc.MockNow(utc.UnixMilli(0))()
+	falseVal := false
+	trueVal := true
 
 	tests := []struct {
-		name  string
-		adapt func(h *console.Handler)
-		want  string
+		name   string
+		caller *bool
+		adapt  func(h *console.Handler)
+		want   string
 	}{
 		{
-			name:  "default: offset, color",
-			adapt: func(h *console.Handler) {},
+			name:   "default: offset, color",
+			caller: &falseVal,
+			adapt:  func(h *console.Handler) {},
 			want: "" +
 				"   0.000 \033[0;37mTRCE \033[0m trace message        field1=\033[0;37mvalue1\033[0m field2=\033[0;37mvalue2\033[0m\n" +
 				"   0.000 \033[0;33mDBG  \033[0m debug message        field1=\033[0;33mvalue1\033[0m field2=\033[0;33mvalue2\033[0m\n" +
@@ -30,7 +34,8 @@ func TestHandler(t *testing.T) {
 				"   0.000 \033[0;31mERR! \033[0m error message        field1=\033[0;31mvalue1\033[0m field2=\033[0;31mvalue2\033[0m\n",
 		},
 		{
-			name: "offset, no color",
+			name:   "offset, no color",
+			caller: &falseVal,
 			adapt: func(h *console.Handler) {
 				h.WithColor(false)
 			},
@@ -42,7 +47,8 @@ func TestHandler(t *testing.T) {
 				"   0.000 ERR!  error message        field1=value1 field2=value2\n",
 		},
 		{
-			name: "timestamp, color",
+			name:   "timestamp, color",
+			caller: &falseVal,
 			adapt: func(h *console.Handler) {
 				h.WithTimestamps(true)
 			},
@@ -54,7 +60,8 @@ func TestHandler(t *testing.T) {
 				"1970-01-01T00:00:00.000Z \033[0;31mERR! \033[0m error message        field1=\033[0;31mvalue1\033[0m field2=\033[0;31mvalue2\033[0m\n",
 		},
 		{
-			name: "timestamp, no color",
+			name:   "timestamp, no color",
+			caller: &falseVal,
 			adapt: func(h *console.Handler) {
 				h.WithTimestamps(true).WithColor(false)
 			},
@@ -65,15 +72,28 @@ func TestHandler(t *testing.T) {
 				"1970-01-01T00:00:00.000Z WARN  warn message         field1=value1 field2=value2\n" +
 				"1970-01-01T00:00:00.000Z ERR!  error message        field1=value1 field2=value2\n",
 		},
+		{
+			name:   "timestamp, color, caller",
+			caller: &trueVal,
+			adapt: func(h *console.Handler) {
+				h.WithTimestamps(true).WithColor(false)
+			},
+			want: "" +
+				"1970-01-01T00:00:00.000Z TRCE  trace message        field1=value1 field2=value2 caller=console_test.go:104\n" +
+				"1970-01-01T00:00:00.000Z DBG   debug message        field1=value1 field2=value2 caller=console_test.go:105\n" +
+				"1970-01-01T00:00:00.000Z       info message         field1=value1 field2=value2 caller=console_test.go:106\n" +
+				"1970-01-01T00:00:00.000Z WARN  warn message         field1=value1 field2=value2 caller=console_test.go:107\n" +
+				"1970-01-01T00:00:00.000Z ERR!  error message        field1=value1 field2=value2 caller=console_test.go:108\n",
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fls := false
 			lg := log.New(&log.Config{
 				Level:       "trace",
 				Handler:     "console",
-				GoRoutineID: &fls,
+				GoRoutineID: &falseVal,
+				Caller:      test.caller,
 			})
 
 			buf := &bytes.Buffer{}
@@ -90,4 +110,5 @@ func TestHandler(t *testing.T) {
 			require.Equal(t, test.want, buf.String())
 		})
 	}
+
 }
