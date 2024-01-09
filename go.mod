@@ -24,3 +24,5 @@ require (
 	github.com/smartystreets/assertions v1.2.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
 )
+
+replace github.com/modern-go/gls => github.com/eluv-io/gls v0.0.0-20240109172027-f54afc64be57
