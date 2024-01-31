@@ -1,6 +1,6 @@
 module github.com/eluv-io/log-go
 
-go 1.17
+go 1.19
 
 require (
 	github.com/eluv-io/apexlog-go v1.9.1-elv3

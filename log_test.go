@@ -1,25 +1,27 @@
 package log_test
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
-	"github.com/eluv-io/log-go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/eluv-io/apexlog-go/handlers/memory"
-	"github.com/stretchr/testify/assert"
+	"github.com/eluv-io/log-go"
 )
 
 func TestLoggingToFile(t *testing.T) {
-	dir, err := ioutil.TempDir("", "logtest")
+	dir, err := os.MkdirTemp("", "logtest")
 	assert.NoError(t, err)
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 	f := filepath.Join(dir, "test.log")
 	c := &log.Config{
 		Level:   "debug",
@@ -50,19 +52,19 @@ func TestLoggingToFile(t *testing.T) {
 
 	file, err := os.Open(f)
 	require.NoError(t, err)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	bb := make([]byte, finfo.Size())
 	n, err := file.Read(bb)
 	require.NoError(t, err)
-	log := make(map[string]interface{})
-	json.Unmarshal(bb[0:n], &log)
-	require.NotEmpty(t, log["fields"])
+	lf := make(map[string]interface{})
+	_ = json.Unmarshal(bb[0:n], &lf)
+	require.NotEmpty(t, lf["fields"])
 }
 
 func TestLoggingToConsole(t *testing.T) {
-	dir, err := ioutil.TempDir("", "logtest")
+	dir, err := os.MkdirTemp("", "logtest")
 	assert.NoError(t, err)
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	c := &log.Config{
 		Level:   "debug",
@@ -85,14 +87,14 @@ func TestLoggingToConsole(t *testing.T) {
 	l := log.New(c2)
 	l.Debug("test log message")
 
-	temp.Close()
+	_ = temp.Close()
 	os.Stdout = old
 
 	finfo, err := os.Stat(fname)
 	assert.NoError(t, err)
 	file, err := os.Open(fname)
 	require.NoError(t, err)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	bb := make([]byte, finfo.Size())
 	n, err := file.Read(bb)
 	require.NoError(t, err)
@@ -116,30 +118,6 @@ func TestAll(t *testing.T) {
 	doTest(t, handler, logger.Error)
 	// can't test fatal, since it calls os.Exit() ...
 	// doTest(t, log.Fatal)
-}
-
-func TestLevels(t *testing.T) {
-	assertLevel(t, tl("debug"), true, true, true, true, true)
-	assertLevel(t, tl("info"), false, true, true, true, true)
-	assertLevel(t, tl("warn"), false, false, true, true, true)
-	assertLevel(t, tl("error"), false, false, false, true, true)
-	assertLevel(t, tl("fatal"), false, false, false, false, true)
-}
-
-func tl(level string) *log.Log {
-	return log.New(
-		&log.Config{
-			Handler: "memory",
-			Level:   level,
-		})
-}
-
-func assertLevel(t *testing.T, logger *log.Log, isDebug, isInfo, isWarn, isError, isFatal bool) {
-	assert.Equal(t, isDebug, logger.IsDebug())
-	assert.Equal(t, isInfo, logger.IsInfo())
-	assert.Equal(t, isWarn, logger.IsWarn())
-	assert.Equal(t, isError, logger.IsError())
-	assert.Equal(t, isFatal, logger.IsFatal())
 }
 
 type Address struct {
@@ -209,39 +187,150 @@ func assertEntries(t *testing.T, handler *memory.Handler, msg string, fields []i
 }
 
 func TestUpdateLevelSetDefault(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), "TestUpdateLevelSetDefault")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(dir) }()
 
-	newLogConfig := func(debug bool) *log.Config {
-		c := log.NewConfig()
-		c.File = &log.LumberjackConfig{
-			Filename: filepath.Join(os.TempDir(), "qfab.log"),
-		}
-		c.Named = make(map[string]*log.Config)
-		{
-			statsLog := log.NewConfig()
-			statsLog.Handler = "text"
-			statsLog.File = &log.LumberjackConfig{
-				Filename: filepath.Join(os.TempDir(), "qfab-http-stats.log"),
+	c := newLogConfigDir(false, dir)
+	log.SetDefault(c)
+	llog := log.Get("/http-req")
+	require.False(t, llog.IsDebug())
+	llog.Info("this is info 1")
+	badDebug := "this is debug bad"
+	llog.Debug(badDebug)
+
+	c = newLogConfigDir(true, dir)
+	log.SetDefault(c)
+	require.True(t, llog.IsDebug())
+	llog.Info("this is info 2")
+	llog.Debug("this is debug ok")
+	badTrace := "this is trace bad"
+	llog.Trace(badTrace)
+
+	bb, err := os.ReadFile(filepath.Join(dir, "qfab-http-req.log"))
+	require.NoError(t, err)
+	sc := bufio.NewScanner(bytes.NewReader(bb))
+	found := map[string]bool{
+		"this is info 1":   false,
+		"this is info 2":   false,
+		"this is debug ok": false,
+	}
+	for lineNum := 0; sc.Scan(); lineNum++ {
+		l := sc.Text()
+		for k := range found {
+			if strings.Contains(l, k) {
+				found[k] = true
 			}
-			c.Named["/http-stats"] = statsLog
+			require.False(t, strings.Contains(l, badDebug))
+			require.False(t, strings.Contains(l, badTrace))
 		}
-		{
-			reqLog := log.NewConfig()
-			if debug {
-				reqLog.Level = "debug"
-			}
-			reqLog.Handler = "raw"
-			reqLog.File = &log.LumberjackConfig{
-				Filename: filepath.Join(os.TempDir(), "qfab-http-req.log"),
-			}
-			c.Named["/http-req"] = reqLog
-		}
-		return c
+	}
+	for k, ok := range found {
+		require.True(t, ok, "not found %s", k)
 	}
 
-	c := newLogConfig(false)
+}
+
+func newLogConfigDir(debug bool, dir string) *log.Config {
+	c := log.NewConfig()
+	c.File = &log.LumberjackConfig{
+		Filename: filepath.Join(dir, "qfab.log"),
+	}
+	c.Named = make(map[string]*log.Config)
+	{
+		statsLog := log.NewConfig()
+		statsLog.Handler = "text"
+		statsLog.File = &log.LumberjackConfig{
+			Filename: filepath.Join(dir, "qfab-http-stats.log"),
+		}
+		c.Named["/http-stats"] = statsLog
+	}
+	{
+		reqLog := log.NewConfig()
+		if debug {
+			reqLog.Level = "debug"
+		}
+		reqLog.Handler = "raw"
+		reqLog.File = &log.LumberjackConfig{
+			Filename: filepath.Join(dir, "qfab-http-req.log"),
+		}
+		c.Named["/http-req"] = reqLog
+	}
+	return c
+}
+
+func TestSetLevel(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), "TestSetLevel")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(dir) }()
+
+	c := newLogConfigDir(false, dir)
 	log.SetDefault(c)
-	require.False(t, log.Get("/http-req").IsDebug())
-	c = newLogConfig(true)
+	llog := log.Get("/http-req")
+	require.False(t, llog.IsDebug())
+	llog.Info("this is info 1")
+	bad := "this is debug bad"
+	llog.Debug(bad)
+
+	llog.SetDebug()
+	require.True(t, llog.IsDebug())
+	llog.Info("this is info 2")
+	llog.Debug("this is debug ok")
+
+	bb, err := os.ReadFile(filepath.Join(dir, "qfab-http-req.log"))
+	require.NoError(t, err)
+	sc := bufio.NewScanner(bytes.NewReader(bb))
+	found := map[string]bool{
+		"this is info 1":   false,
+		"this is info 2":   false,
+		"this is debug ok": false,
+	}
+	for lineNum := 0; sc.Scan(); lineNum++ {
+		l := sc.Text()
+		for k := range found {
+			if strings.Contains(l, k) {
+				found[k] = true
+			}
+			require.False(t, strings.Contains(l, bad))
+		}
+	}
+	for k, ok := range found {
+		require.True(t, ok, "not found %s", k)
+	}
+
+}
+
+// TestConcurrent is meant to be run with -race and output no race
+func TestConcurrent(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), "TestConcurrent")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(dir) }()
+
+	c := newLogConfigDir(false, dir)
 	log.SetDefault(c)
-	require.True(t, log.Get("/http-req").IsDebug())
+
+	do := func(debug bool, logPath string) {
+		c := newLogConfigDir(debug, dir)
+		log.SetDefault(c)
+		for i := 0; i < 10; i++ {
+			llog := log.Get(logPath)
+			llog.Info("this is info 1")
+			llog.Debug("this is debug ")
+		}
+	}
+	logPaths := []string{
+		"/http-req",
+		"/http",
+	}
+
+	wg := sync.WaitGroup{}
+	count := 5
+	wg.Add(count)
+	for i := 0; i < count; i++ {
+		go func(i int) {
+			defer wg.Done()
+			do(i%2 == 0, logPaths[i%2])
+		}(i)
+	}
+	wg.Wait()
 }

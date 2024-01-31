@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
-	apex "github.com/eluv-io/apexlog-go"
 	"github.com/stretchr/testify/require"
+
+	apex "github.com/eluv-io/apexlog-go"
 )
 
 type entry struct {
@@ -36,13 +36,13 @@ func newEntry(e *apex.Entry, maxFields int) *entry {
 
 func testLogs(maxFields int) ([]*entry, error) {
 	f := "testdata/anon_usage.log"
-	bb, err := ioutil.ReadFile(f)
+	bb, err := os.ReadFile(f)
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewReader(bb)
 
-	ret := []*entry{}
+	ret := make([]*entry, 0)
 	scanner := bufio.NewScanner(buf)
 	for scanner.Scan() {
 		ln := scanner.Bytes()
@@ -61,7 +61,7 @@ func testLogs(maxFields int) ([]*entry, error) {
 }
 
 func TestSimpleLog(b *testing.T) {
-	path, err := ioutil.TempDir(os.TempDir(), "TestSimpleLog")
+	path, err := os.MkdirTemp(os.TempDir(), "TestSimpleLog")
 	require.NoError(b, err)
 	defer func() { _ = os.RemoveAll(path) }()
 
@@ -94,9 +94,24 @@ func TestSimpleLog(b *testing.T) {
 //
 //BenchmarkLog/file-config-8         	   93165	     12167 ns/op	    3888 B/op	      51 allocs/op
 //BenchmarkLog/file-config-10-fields-8     180730	      7061 ns/op	    1153 B/op	      24 allocs/op
+//
+// -- jan 2024 --
+// commit: master@017ba5a5be4d5227b9f025cff995beab928d7b75
+//BenchmarkLog/file-config-8         	   71143	     17048 ns/op	    3767 B/op	      51 allocs/op
+//BenchmarkLog/file-config-10-fields-8     125799	      9259 ns/op	    1153 B/op	      24 allocs/op
+//
+// -- with no mod
+//BenchmarkLog/file-config-8         	   71025	     17209 ns/op	    3789 B/op	      51 allocs/op
+//BenchmarkLog/file-config-10-fields-8     125124	      9562 ns/op	    1153 B/op	      24 allocs/op
+// -- with atomic wrapper
+//BenchmarkLog/file-config-8         	   69007	     17866 ns/op	    3798 B/op	      51 allocs/op
+//BenchmarkLog/file-config-10-fields-8     122730	     10282 ns/op	    1153 B/op	      24 allocs/op
+// -- with atomic wrapper (2)
+//BenchmarkLog/file-config-8         	   72332	     16735 ns/op	    3793 B/op	      51 allocs/op
+//BenchmarkLog/file-config-10-fields-8     135945	      8894 ns/op	    1153 B/op	      24 allocs/op
 
 func BenchmarkLog(b *testing.B) {
-	path, err := ioutil.TempDir(os.TempDir(), "benchmarkLog")
+	path, err := os.MkdirTemp(os.TempDir(), "benchmarkLog")
 	require.NoError(b, err)
 	defer func() { _ = os.RemoveAll(path) }()
 
@@ -110,11 +125,11 @@ func BenchmarkLog(b *testing.B) {
 			Handler: "text",
 		}
 		log := newLog(cfg, defaultFields(cfg, "/"), nil)
-		max := 10
-		if max >= len(entries) {
-			max = len(entries) - 1
+		maxent := 10
+		if maxent >= len(entries) {
+			maxent = len(entries) - 1
 		}
-		for i := 0; i < max; i++ {
+		for i := 0; i < maxent; i++ {
 			e := entries[i]
 			log.Info(e.Message, e.Fields...)
 		}
