@@ -3,9 +3,11 @@ package log
 import (
 	"testing"
 
+	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
+
 	apex "github.com/eluv-io/apexlog-go"
 	"github.com/eluv-io/apexlog-go/handlers/memory"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestHierarchy(t *testing.T) {
@@ -22,7 +24,8 @@ func TestHierarchy(t *testing.T) {
 		},
 	}
 	SetDefault(&c)
-	handler := def.Handler().(*memory.Handler)
+	handler, ok := def().Handler().(*memory.Handler)
+	require.True(t, ok)
 
 	Convey("Given a hierarchical log configuration", t, func() {
 		clearEntries(handler)

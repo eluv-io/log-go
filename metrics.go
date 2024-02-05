@@ -1,5 +1,7 @@
 package log
 
+import "sync/atomic"
+
 // Metrics is the interface for collecting log metrics (counters for log calls).
 type Metrics interface {
 	// FileCreated increments the counter for created log files
@@ -16,18 +18,17 @@ type Metrics interface {
 	Debug(logger string)
 }
 
-// SetMetrics sets a new global Metrics instance.
-func SetMetrics(m Metrics) {
-	if m == nil {
-		m = &noopMetrics{}
-	}
-	metrics = m
-}
-
 // =============================================================================
 
-// metrics is the global metrics instance
-var metrics Metrics = &noopMetrics{}
+var (
+	// pMetrics is a pointer to the global metrics instance
+	pMetrics  atomic.Pointer[metricsWrapper]
+	noMetrics = &noopMetrics{}
+)
+
+func init() {
+	pMetrics.Store(&metricsWrapper{metrics: noMetrics})
+}
 
 // noopMetrics is a no-op Metrics implementation.
 type noopMetrics struct{}
@@ -38,3 +39,24 @@ func (n *noopMetrics) Error(string)     {}
 func (n *noopMetrics) Warn(string)      {}
 func (n *noopMetrics) Info(string)      {}
 func (n *noopMetrics) Debug(string)     {}
+
+type metricsWrapper struct {
+	metrics Metrics
+}
+
+func metrics() Metrics {
+	ret := pMetrics.Load()
+	if ret == nil {
+		// should not happen
+		return noMetrics
+	}
+	return ret.metrics
+}
+
+// SetMetrics sets a new global Metrics instance.
+func SetMetrics(m Metrics) {
+	if m == nil {
+		m = noMetrics
+	}
+	pMetrics.Store(&metricsWrapper{metrics: m})
+}
