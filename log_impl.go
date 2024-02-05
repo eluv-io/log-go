@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 
@@ -21,12 +20,12 @@ import (
 )
 
 var (
-	rootLog atomic.Pointer[logRoot]
+	rootLog *logRoot
 )
 
 func init() {
 	apex.SetHandler(json.New(os.Stdout))
-	rootLog.Store(defaultLogRoot())
+	rootLog = defaultLogRoot()
 }
 
 func defaultConfig() *Config {
@@ -37,12 +36,7 @@ func defaultConfig() *Config {
 }
 
 func defaultLogRoot() *logRoot {
-	defConfig := defaultConfig()
-	return &logRoot{
-		named:     make(map[string]*Log),
-		defConfig: defConfig,
-		def:       newLog(defConfig, defaultFields(defConfig, "/"), nil),
-	}
+	return newLogRoot(defaultConfig())
 }
 
 func newLogRoot(c *Config) *logRoot {
@@ -54,7 +48,7 @@ func newLogRoot(c *Config) *logRoot {
 }
 
 func getLogRoot() *logRoot {
-	return rootLog.Load()
+	return rootLog
 }
 
 func def() *Log {
@@ -317,13 +311,3 @@ func sortedKeys(m map[string]*Log) []string {
 	sort.Strings(keys)
 	return keys
 }
-
-var (
-	_      sync.Locker = (*noopLock)(nil)
-	noLock             = &noopLock{}
-)
-
-type noopLock struct{}
-
-func (n *noopLock) Lock()   {}
-func (n *noopLock) Unlock() {}

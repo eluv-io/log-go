@@ -33,7 +33,7 @@ func copyApexLogger(log apex.Interface) apex.Interface {
 			Handler: al.Logger.Handler,
 			Level:   al.Logger.Level,
 		}
-		return apex.NewEntry(apx).WithFields(al.Fields)
+		return apex.NewEntry(apx).WithFields(al.MergedFields())
 	default:
 		panic(errors.Str(fmt.Sprintf("copyApexLogger: unknown type %v", reflect.TypeOf(log))))
 	}

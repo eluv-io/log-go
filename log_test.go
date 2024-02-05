@@ -10,10 +10,12 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ljson "github.com/eluv-io/apexlog-go/handlers/json"
 	"github.com/eluv-io/apexlog-go/handlers/memory"
 	"github.com/eluv-io/log-go"
 )
@@ -259,8 +261,8 @@ func newLogConfigDir(debug bool, dir string) *log.Config {
 	return c
 }
 
-func TestSetLevel(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), "TestSetLevel")
+func TestSetLevelBasic(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), "TestSetLevelBasic")
 	require.NoError(t, err)
 	defer func() { _ = os.RemoveAll(dir) }()
 
@@ -298,6 +300,111 @@ func TestSetLevel(t *testing.T) {
 		require.True(t, ok, "not found %s", k)
 	}
 
+}
+
+// TestSetLevel test that changing the level in the hierarchy works and does not
+// affect fields nor other logs located upper in the hierarchy.
+func TestSetLevel(t *testing.T) {
+	gid := true
+	c := &log.Config{
+		Level:       "info",
+		Handler:     "json",
+		GoRoutineID: &gid,
+		Named: map[string]*log.Config{
+			"a": {
+				Level:       "info",
+				Handler:     "json",
+				GoRoutineID: &gid,
+			},
+			"b": {
+				Level:       "info",
+				Handler:     "json",
+				GoRoutineID: &gid,
+			},
+		},
+	}
+	log.SetDefault(c)
+	def := log.Root()
+	mh, ok := def.Handler().(*ljson.Handler)
+	require.True(t, ok)
+	// change the encoder
+	w := bytes.NewBuffer(make([]byte, 0))
+	mh.Encoder = json.NewEncoder(w)
+
+	type LogLine struct {
+		Fields struct {
+			Logger string `json:"logger"`
+			Gid    int    `json:"gid"`
+		} `json:"fields"`
+		Level     string    `json:"level"`
+		Timestamp time.Time `json:"timestamp"`
+		Message   string    `json:"message"`
+	}
+
+	readLogLines := func() []*LogLine {
+		sc := bufio.NewScanner(bytes.NewReader(w.Bytes()))
+		var lines []*LogLine
+		for sc.Scan() {
+			l := sc.Bytes()
+			logLine := &LogLine{}
+			err := json.Unmarshal(l, logLine)
+			require.NoError(t, err)
+			lines = append(lines, logLine)
+		}
+		return lines
+	}
+
+	assertLog := func(logger, level, message string) {
+		ll := readLogLines()
+		require.True(t, len(ll) > 0)
+		l := ll[len(ll)-1]
+		require.Equal(t, logger, l.Fields.Logger)
+		require.Equal(t, level, l.Level)
+		require.Equal(t, message, l.Message)
+		require.True(t, l.Fields.Gid > 0)
+	}
+
+	a := log.Get("a")
+	a.Info("a")
+	assertLog("/a", "info", "a")
+
+	b := log.Get("b")
+	b.Info("b")
+	assertLog("/b", "info", "b")
+
+	abc := log.Get("/a/b/c")
+	abc.Debug("abc")
+	assertLog("/b", "info", "b")
+	abc.Info("abc")
+	assertLog("/a/b/c", "info", "abc")
+
+	abcd := log.Get("/a/b/c/d")
+	abcd.Debug("abcd")
+	assertLog("/a/b/c", "info", "abc")
+	abcd.Info("abcd")
+	assertLog("/a/b/c/d", "info", "abcd")
+
+	abc.SetDebug()
+
+	a.Info("aa")
+	assertLog("/a", "info", "aa")
+	a.Debug("aa2")
+	assertLog("/a", "info", "aa")
+
+	b.Info("bb")
+	assertLog("/b", "info", "bb")
+	b.Debug("bb2")
+	assertLog("/b", "info", "bb")
+
+	abc.Debug("abc2")
+	assertLog("/a/b/c", "debug", "abc2")
+	abc.Info("abc3")
+	assertLog("/a/b/c", "info", "abc3")
+
+	abcd.Debug("abcd")
+	assertLog("/a/b/c/d", "debug", "abcd")
+	abcd.Info("abcd2")
+	assertLog("/a/b/c/d", "info", "abcd2")
 }
 
 // TestConcurrent is meant to be run with -race and output no race

@@ -194,14 +194,21 @@ func (l *Log) SetFatal() {
 	l.setLogLevel(apex.FatalLevel)
 }
 
+func (l *Log) getLogRoot() *logRoot {
+	return getLogRoot()
+}
+
 func (l *Log) setLogLevel(level apex.Level) {
-	setLevel := func(lcopy *logger) {
-		lcopy.logger().Level = level
+	setLevel := func(logCopy *logger) {
+		logCopy.logger().Level = level
 	}
-	getLogRoot().doLocked(func(r *logRoot) {
+	logName := l.get().name
+
+	root := l.getLogRoot()
+	root.doLocked(func(r *logRoot) {
 		for name, log := range r.named {
 			oldLogger := log.get()
-			if strings.HasPrefix(name, oldLogger.name) {
+			if strings.HasPrefix(name, logName) {
 				newLogger := oldLogger.copy(setLevel)
 				log.set(newLogger)
 			}
