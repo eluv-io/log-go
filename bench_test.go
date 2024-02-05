@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apex "github.com/eluv-io/apexlog-go"
+	"github.com/eluv-io/errors-go"
 )
 
 type entry struct {
@@ -171,6 +172,82 @@ func BenchmarkLog(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			e := entries[i%len(entries)]
 			log.Info(e.Message)
+		}
+	})
+
+}
+
+// BenchmarkNoLog tests logging with a logger configured to info:
+// - at debug level in order to benchmark 'disabled' logs
+// - at info with a discard logger
+//
+// == before changes using atomic
+// master@017ba5a5be4d5227b9f025cff995beab928d7b75
+// goos: darwin - goarch: amd64
+// BenchmarkNoLog/debug-10-fields-8         	 8659641	       126.7 ns/op	     320 B/op	       1 allocs/op
+// BenchmarkNoLog/discard-10-fields-8       	  271183	      4302 ns/op	    1849 B/op	      31 allocs/op
+// == after changes using atomic
+// BenchmarkNoLog/debug-10-fields-8         	 9258938	       130.9 ns/op	     320 B/op	       1 allocs/op
+// BenchmarkNoLog/discard-10-fields-8       	  274232	      4264 ns/op	    1849 B/op	      31 allocs/op
+func BenchmarkNoLog(b *testing.B) {
+	doLog := func(l *Log, level apex.Level, msg string) {
+		switch level {
+		case apex.InfoLevel:
+			l.Info(msg,
+				"name", "me",
+				"count", 1,
+				"age", 444,
+				"location", "here",
+				"town", "valencia",
+				"country", "spain",
+				"planet", "earth",
+				"more_count", 444,
+				"other_location", "there",
+				"more_location", "more loc",
+			)
+		case apex.DebugLevel:
+			l.Debug(msg,
+				"name", "me",
+				"count", 1,
+				"age", 444,
+				"location", "here",
+				"town", "valencia",
+				"country", "spain",
+				"planet", "earth",
+				"more_count", 444,
+				"other_location", "there",
+				"more_location", "more loc",
+			)
+		default:
+			panic(errors.Str("unhandled level"))
+		}
+	}
+	logDebug := func(l *Log, msg string) {
+		doLog(l, apex.DebugLevel, msg)
+	}
+	logInfo := func(l *Log, msg string) {
+		doLog(l, apex.InfoLevel, msg)
+	}
+
+	log := New(&Config{
+		Level:   "info",
+		Handler: "text",
+	})
+	b.Run("debug-10-fields", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			logDebug(log, "hi")
+		}
+	})
+
+	log = New(&Config{
+		Level:   "info",
+		Handler: "discard",
+	})
+	b.Run("discard-10-fields", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			logInfo(log, "hi")
 		}
 	})
 
