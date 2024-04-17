@@ -69,10 +69,6 @@ func (r *logRoot) sameConfig(c *Config) bool {
 
 func (r *logRoot) setDefault(c *Config) {
 	r.mutex.Lock()
-	if r.sameConfig(c) {
-		r.mutex.Unlock()
-		return
-	}
 	defer r.mutex.Unlock()
 	r.setDefaultNoLock(c)
 }

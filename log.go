@@ -22,11 +22,11 @@
 //
 // Example:
 //
-//	 // conventional plain-text log
-//	 log.Infof("uploading %s for %s", filename, user)
-//	 log.Warnf("upload failed %s for %s: %s", filename, user, err)
+//	// conventional plain-text log
+//	log.Infof("uploading %s for %s", filename, user)
+//	log.Warnf("upload failed %s for %s: %s", filename, user, err)
 //
-//	 // structured logging
+//	// structured logging
 //	log.Info("uploading", "file", filename, "user", user)
 //	log.Warn("upload failed", "file", filename, "user", user, "error", err)
 //
@@ -63,7 +63,8 @@ func NewLumberjackLogger(c *LumberjackConfig) *lumberjack.Logger {
 	}
 }
 
-// Log is the logger wrapping an apex Log instance
+// Log provides the fundamental logging functions. It's implemented as a wrapper around the actual logger implementation
+// that allows concurrency-safe modification (replacement) of the underlying logger.
 type Log struct {
 	lw atomic.Pointer[logger]
 }
