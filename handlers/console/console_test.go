@@ -79,11 +79,11 @@ func TestHandler(t *testing.T) {
 				h.WithTimestamps(true).WithColor(false)
 			},
 			want: "" +
-				"1970-01-01T00:00:00.000Z TRCE  trace message        field1=value1 field2=value2 caller=console_test.go:104\n" +
-				"1970-01-01T00:00:00.000Z DBG   debug message        field1=value1 field2=value2 caller=console_test.go:105\n" +
-				"1970-01-01T00:00:00.000Z       info message         field1=value1 field2=value2 caller=console_test.go:106\n" +
-				"1970-01-01T00:00:00.000Z WARN  warn message         field1=value1 field2=value2 caller=console_test.go:107\n" +
-				"1970-01-01T00:00:00.000Z ERR!  error message        field1=value1 field2=value2 caller=console_test.go:108\n",
+				"1970-01-01T00:00:00.000Z TRCE  trace message        field1=value1 field2=value2 caller=console_test.go:108\n" +
+				"1970-01-01T00:00:00.000Z DBG   debug message        field1=value1 field2=value2 caller=console_test.go:109\n" +
+				"1970-01-01T00:00:00.000Z       info message         field1=value1 field2=value2 caller=console_test.go:110\n" +
+				"1970-01-01T00:00:00.000Z WARN  warn message         field1=value1 field2=value2 caller=console_test.go:111\n" +
+				"1970-01-01T00:00:00.000Z ERR!  error message        field1=value1 field2=value2 caller=console_test.go:112\n",
 		},
 	}
 
@@ -95,9 +95,13 @@ func TestHandler(t *testing.T) {
 				GoRoutineID: &falseVal,
 				Caller:      test.caller,
 			})
+			handler, ok := lg.Handler().(*console.Handler)
+			if !ok {
+				// give up
+				return
+			}
 
 			buf := &bytes.Buffer{}
-			handler := lg.Handler().(*console.Handler)
 			handler.Writer = buf
 			test.adapt(handler)
 

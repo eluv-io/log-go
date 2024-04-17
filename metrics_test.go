@@ -3,8 +3,9 @@ package log_test
 import (
 	"testing"
 
-	"github.com/eluv-io/log-go"
 	"github.com/stretchr/testify/require"
+
+	"github.com/eluv-io/log-go"
 )
 
 func TestMetrics(t *testing.T) {
