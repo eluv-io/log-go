@@ -143,15 +143,22 @@ func (l *logger) Fatal(msg string, fields ...interface{}) {
 }
 
 func (l *logger) fields(args []interface{}) []interface{} {
-	if l.config.GoRoutineID != nil && *l.config.GoRoutineID {
-		args = append(args, "gid", goID())
+	addGID := l.config.GoRoutineID != nil && *l.config.GoRoutineID
+	addCaller := l.config.Caller != nil && *l.config.Caller
+	if !addGID && !addCaller {
+		return args
 	}
 
-	if l.config.Caller != nil && *l.config.Caller {
-		args = append(args, "caller", caller(2))
+	a := make([]interface{}, 0, len(args)+4)
+	if addGID {
+		a = append(a, "gid", goID())
+	}
+	a = append(a, args...)
+	if addCaller {
+		a = append(a, "caller", caller(2))
 	}
 
-	return args
+	return a
 }
 
 // goID returns the goroutine id of current goroutine

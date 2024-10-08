@@ -14,11 +14,11 @@ import (
 // the package's principle go source file.
 //
 // The package name serves two purposes:
-// 1. It is added to each log entry as a field called "logger". This allows to
-//    determine easily which part of the code (package) has generated the log
-//    entry.
-// 2. Logging can be configured separately for each named log instance, i.e.
-//    for each package if this convention is followed strictly.
+//  1. It is added to each log entry as a field called "logger". This allows to
+//     determine easily which part of the code (package) has generated the log
+//     entry.
+//  2. Logging can be configured separately for each named log instance, i.e.
+//     for each package if this convention is followed strictly.
 var log = elog.Get("/eluvio/log/sample")
 
 func createAccount(ID string, name string) (interface{}, error) {
