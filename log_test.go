@@ -302,8 +302,8 @@ func TestSetLevelBasic(t *testing.T) {
 
 }
 
-// TestSetLevel test that changing the level in the hierarchy works and does not
-// affect fields nor other logs located upper in the hierarchy.
+// TestSetLevel verifies that changing the level in the hierarchy works and does not
+// affect fields nor other logs located higher up in the hierarchy.
 func TestSetLevel(t *testing.T) {
 	gid := true
 	c := &log.Config{

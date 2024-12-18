@@ -202,6 +202,7 @@ func (l *Log) getLogRoot() *logRoot {
 func (l *Log) setLogLevel(level apex.Level) {
 	setLevel := func(logCopy *logger) {
 		logCopy.logger().Level = level
+		logCopy.config.Level = level.String()
 	}
 	logName := l.get().name
 

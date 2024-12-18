@@ -137,12 +137,13 @@ func (r *logRoot) Get(path string) *Log {
 		if logFound {
 			log = l
 			logPath = p
+			conf = *l.get().config
 		}
 		if c, configFound := r.defConfig.Named[p]; configFound {
-			mergeConfig(c, &conf)
 			if !logFound {
 				// there is a config at this level, but no log yet.
 				// copy the merged configuration and create a new log from it
+				mergeConfig(c, &conf)
 				cc := conf
 				log = newLog(&cc, defaultFields(&cc, p), log)
 				r.named[p] = log
