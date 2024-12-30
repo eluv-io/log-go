@@ -10,11 +10,12 @@ import (
 )
 
 func TestLevels(t *testing.T) {
-	assertLevel(t, tl("debug"), true, true, true, true, true)
-	assertLevel(t, tl("info"), false, true, true, true, true)
-	assertLevel(t, tl("warn"), false, false, true, true, true)
-	assertLevel(t, tl("error"), false, false, false, true, true)
-	assertLevel(t, tl("fatal"), false, false, false, false, true)
+	assertLevelTrace(t, tl("trace"))
+	assertLevelDebug(t, tl("debug"))
+	assertLevelInfo(t, tl("info"))
+	assertLevelWarn(t, tl("warn"))
+	assertLevelError(t, tl("error"))
+	assertLevelFatal(t, tl("fatal"))
 }
 
 func tl(level string) *log.Log {
@@ -25,12 +26,32 @@ func tl(level string) *log.Log {
 		})
 }
 
-func assertLevel(t *testing.T, logger *log.Log, isDebug, isInfo, isWarn, isError, isFatal bool) {
-	assert.Equal(t, isDebug, logger.IsDebug())
-	assert.Equal(t, isInfo, logger.IsInfo())
-	assert.Equal(t, isWarn, logger.IsWarn())
-	assert.Equal(t, isError, logger.IsError())
-	assert.Equal(t, isFatal, logger.IsFatal())
+func assertLevelTrace(t *testing.T, logger *log.Log) {
+	assert.True(t, logger.IsTrace())
+}
+
+func assertLevelDebug(t *testing.T, logger *log.Log) {
+	assert.True(t, logger.IsDebug())
+	assert.False(t, logger.IsTrace())
+}
+
+func assertLevelInfo(t *testing.T, logger *log.Log) {
+	assert.True(t, logger.IsInfo())
+	assert.False(t, logger.IsDebug())
+}
+
+func assertLevelWarn(t *testing.T, logger *log.Log) {
+	assert.True(t, logger.IsWarn())
+	assert.False(t, logger.IsInfo())
+}
+
+func assertLevelError(t *testing.T, logger *log.Log) {
+	assert.True(t, logger.IsError())
+	assert.False(t, logger.IsWarn())
+}
+
+func assertLevelFatal(t *testing.T, logger *log.Log) {
+	assert.True(t, logger.IsFatal())
 }
 
 func TestLevel(t *testing.T) {
@@ -104,4 +125,65 @@ func TestLevel(t *testing.T) {
 		}
 	}
 
+}
+
+func TestLevelPropagation(t *testing.T) {
+	c := log.Config{
+		Level:   "info",
+		Handler: "memory",
+		Named: map[string]*log.Config{
+			"/api": {
+				Level: "debug",
+			},
+			"/db": {
+				Level: "warn",
+			},
+		},
+	}
+	log.SetDefault(&c)
+	// handler, ok := log.Get("").Handler().(*memory.Handler)
+	// require.True(t, ok)
+
+	root := log.Root()
+
+	api := log.Get("/api")
+	ep1 := log.Get("/api/ep1") // inherits from /api
+	ep2 := log.Get("/api/ep2") // inherits from /api
+	db := log.Get("/db")
+
+	assertLevelInfo(t, root)
+	assertLevelDebug(t, api)
+	assertLevelDebug(t, ep1)
+	assertLevelDebug(t, ep2)
+	assertLevelWarn(t, db)
+
+	ep2.SetWarn()
+
+	assertLevelInfo(t, root)
+	assertLevelDebug(t, api)
+	assertLevelDebug(t, ep1)
+	assertLevelWarn(t, ep2)
+	assertLevelWarn(t, db)
+
+	root.SetError()
+
+	assertLevelError(t, root)
+	assertLevelError(t, api)
+	assertLevelError(t, ep1)
+	assertLevelError(t, ep2)
+	assertLevelError(t, db)
+
+	api.SetTrace()
+
+	assertLevelError(t, root)
+	assertLevelTrace(t, api)
+	assertLevelTrace(t, ep1)
+	assertLevelTrace(t, ep2)
+	assertLevelError(t, db)
+
+	snl := log.Get("/some/new/logger")
+	assertLevelError(t, snl) // inherited from root
+
+	ep3 := log.Get("/api/ep3")
+	assertLevelTrace(t, ep3) // inherited from /api (which was set to trace above)
 }
