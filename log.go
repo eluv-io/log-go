@@ -156,6 +156,15 @@ func (l *Log) Level() string {
 	return l.get().logger().Level.String()
 }
 
+// Rotate rotates the file underpinning the log, if one exists
+func (l *Log) Rotate() error {
+	lj := l.get().lumberjack
+	if lj != nil {
+		return lj.Rotate()
+	}
+	return nil
+}
+
 // SetLevel sets the log level according to the given string.
 func (l *Log) SetLevel(level string) {
 	lvl, err := apex.ParseLevel(level)
