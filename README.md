@@ -230,7 +230,7 @@ Certain situations might require throttling the output of log messages in order 
 ```go 
 for {
 	...
-	log.Throttle("connect").Debug("failed to connect", "error", error, "attempt", attempt)
+	log.Throttle("connect").Debug("failed to connect", "error", err, "attempt", attempt)
 	...
 }
 ```
@@ -241,7 +241,7 @@ The `Throttle` function expects a throttling key as first argument ("connect" in
 authLog := log.Throttle("authenticate", time.Second)
 for {
 	...
-	authLog.Debug("failed to authenticate", "error", error)
+	authLog.Debug("failed to authenticate", "error", err)
     ...
 }
 ```
