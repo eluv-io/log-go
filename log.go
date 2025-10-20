@@ -41,6 +41,7 @@ import (
 	"runtime"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 
@@ -153,7 +154,7 @@ func (l *Log) Name() string {
 }
 
 func (l *Log) Level() string {
-	return l.get().logger().Level.String()
+	return l.get().logger.Level.String()
 }
 
 // Rotate rotates the file underpinning the log, if one exists
@@ -204,13 +205,25 @@ func (l *Log) SetFatal() {
 	l.setLogLevel(apex.FatalLevel)
 }
 
+// Throttle returns a decorator of this log that limits the number of log messages emitted per period. The decorator is
+// tied to the given throttle key - different keys result in separate instances. The decorator logs the first message
+// and suppresses all subsequent messages that are logged within the provided period (5 seconds by default). The first
+// message in the new period is logged again, with an indication of the number of entries that were suppressed.
+//
+//	1970-01-01T00:00:00.000Z WARN  failed to connect         attempt=1 error=connect error
+//	1970-01-01T00:00:01.000Z WARN  failed to connect         attempt=11 suppressed=9 throttle_period=1s error=connect error
+//	1970-01-01T00:00:02.000Z WARN  failed to connect         attempt=21 suppressed=9 throttle_period=1s error=connect error
+func (l *Log) Throttle(key string, period ...time.Duration) Throttled {
+	return l.get().throttle(key, period...)
+}
+
 func (l *Log) getLogRoot() *logRoot {
 	return getLogRoot()
 }
 
 func (l *Log) setLogLevel(level apex.Level) {
 	setLevel := func(logCopy *logger) {
-		logCopy.logger().Level = level
+		logCopy.logger.Level = level
 		logCopy.config.Level = level.String()
 	}
 	logName := l.get().name

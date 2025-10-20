@@ -219,7 +219,7 @@ func newLog(c *Config, fields *apex.Fields, parent *Log) *Log {
 
 	if par != nil && par.config.Handler == c.Handler && reflect.DeepEqual(par.config.File, file) {
 		// re-use the parent's handler if of same type
-		handler = par.logger().Handler
+		handler = par.logger.Handler
 	} else {
 		metrics().InstanceCreated()
 		if file != nil {
@@ -258,6 +258,7 @@ func newLog(c *Config, fields *apex.Fields, parent *Log) *Log {
 	ret := &Log{}
 	ret.lw.Store(&logger{
 		log:        log,
+		logger:     apexLogger,
 		name:       name,
 		config:     c,
 		lumberjack: ljack,

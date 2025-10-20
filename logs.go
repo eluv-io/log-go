@@ -1,5 +1,7 @@
 package log
 
+import "time"
+
 // SetDefault sets the default configuration and creates the default log based on that configuration.
 func SetDefault(c *Config) {
 	getLogRoot().setDefault(c)
@@ -81,4 +83,16 @@ func IsError() bool {
 // IsFatal returns true if the logger logs in Fatal level.
 func IsFatal() bool {
 	return def().IsFatal()
+}
+
+// Throttle returns a decorator of this log that limits the number of log messages emitted per period. The decorator is
+// tied to the given throttle key - different keys result in separate instances. The decorator logs the first message
+// and suppresses all subsequent messages that are logged within the provided period (5 seconds by default). The first
+// message in the new period is logged again, with an indication of the number of entries that were suppressed.
+//
+//	1970-01-01T00:00:00.000Z WARN  failed to connect         attempt=1 error=connect error
+//	1970-01-01T00:00:01.000Z WARN  failed to connect         attempt=11 suppressed=9 throttle_period=1s error=connect error
+//	1970-01-01T00:00:02.000Z WARN  failed to connect         attempt=21 suppressed=9 throttle_period=1s error=connect error
+func Throttle(key string, period ...time.Duration) Throttled {
+	return def().Throttle(key, period...)
 }

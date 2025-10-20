@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/modern-go/gls"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -16,24 +17,27 @@ import (
 // logger is the actual implementation of a Log
 type logger struct {
 	log        apex.Interface     // log is the logger decorated with the logger name field
+	logger     *apex.Logger       // logger is the actual apex logger
 	name       string             // name is the logger's name when created through Get()
 	config     *Config            // the current config
 	lumberjack *lumberjack.Logger // io.WriteCloser that writes to the specified filename.
+	throttled  throttleFactory    // factory for throttled loggers
 }
 
-func copyApexLogger(log apex.Interface) apex.Interface {
+func copyApexLogger(log apex.Interface) (apex.Interface, *apex.Logger) {
 	switch al := log.(type) {
 	case *apex.Logger:
-		return &apex.Logger{
+		apx := &apex.Logger{
 			Handler: al.Handler,
 			Level:   al.Level,
 		}
+		return apx, apx
 	case *apex.Entry:
 		apx := &apex.Logger{
 			Handler: al.Logger.Handler,
 			Level:   al.Logger.Level,
 		}
-		return apex.NewEntry(apx).WithFields(al.MergedFields())
+		return apex.NewEntry(apx).WithFields(al.MergedFields()), apx
 	default:
 		panic(errors.Str(fmt.Sprintf("copyApexLogger: unknown type %v", reflect.TypeOf(log))))
 	}
@@ -41,60 +45,49 @@ func copyApexLogger(log apex.Interface) apex.Interface {
 
 func (l *logger) copy(modFns ...func(l *logger)) *logger {
 	ret := &logger{
-		log:        copyApexLogger(l.log),
 		name:       l.name,
 		config:     l.config,
 		lumberjack: l.lumberjack,
 	}
+	ret.log, ret.logger = copyApexLogger(l.log)
 	for _, fn := range modFns {
 		fn(ret)
 	}
 	return ret
 }
 
-func (l *logger) logger() *apex.Logger {
-	switch al := l.log.(type) {
-	case *apex.Logger:
-		return al
-	case *apex.Entry:
-		return al.Logger
-	default:
-		panic(errors.Str(fmt.Sprintf("logger: unknown type %v", reflect.TypeOf(l.log))))
-	}
-}
-
 func (l *logger) handler() apex.Handler {
-	return l.logger().Handler
+	return l.logger.Handler
 }
 
 // IsTrace returns true if the logger logs in Trace level.
 func (l *logger) IsTrace() bool {
-	return l.logger().Level <= apex.TraceLevel
+	return l.logger.Level <= apex.TraceLevel
 }
 
 // IsDebug returns true if the logger logs in Debug level.
 func (l *logger) IsDebug() bool {
-	return l.logger().Level <= apex.DebugLevel
+	return l.logger.Level <= apex.DebugLevel
 }
 
 // IsInfo returns true if the logger logs in Info level.
 func (l *logger) IsInfo() bool {
-	return l.logger().Level <= apex.InfoLevel
+	return l.logger.Level <= apex.InfoLevel
 }
 
 // IsWarn returns true if the logger logs in Warn level.
 func (l *logger) IsWarn() bool {
-	return l.logger().Level <= apex.WarnLevel
+	return l.logger.Level <= apex.WarnLevel
 }
 
 // IsError returns true if the logger logs in Error level.
 func (l *logger) IsError() bool {
-	return l.logger().Level <= apex.ErrorLevel
+	return l.logger.Level <= apex.ErrorLevel
 }
 
 // IsFatal returns true if the logger logs in Fatal level.
 func (l *logger) IsFatal() bool {
-	return l.logger().Level <= apex.FatalLevel
+	return l.logger.Level <= apex.FatalLevel
 }
 
 // Trace logs the given message at the Trace level.
@@ -159,6 +152,10 @@ func (l *logger) fields(args []interface{}) []interface{} {
 	}
 
 	return a
+}
+
+func (l *logger) throttle(key string, duration ...time.Duration) Throttled {
+	return l.throttled.get(l.logger, key, duration...)
 }
 
 // goID returns the goroutine id of current goroutine

@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
+	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -18,6 +21,7 @@ import (
 	ljson "github.com/eluv-io/apexlog-go/handlers/json"
 	"github.com/eluv-io/apexlog-go/handlers/memory"
 	"github.com/eluv-io/log-go"
+	"github.com/eluv-io/utc-go"
 )
 
 func TestLoggingToFile(t *testing.T) {
@@ -80,7 +84,7 @@ func TestLoggingToConsole(t *testing.T) {
 	assert.NoError(t, err)
 
 	fname := filepath.Join(dir, "stdout")
-	//fmt.Println("stdout is now set to", fname)
+	// fmt.Println("stdout is now set to", fname)
 	old := os.Stdout              // keep backup of the real stdout
 	temp, err := os.Create(fname) // create temp file
 	require.NoError(t, err)
@@ -440,4 +444,35 @@ func TestConcurrent(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
+}
+
+func TestThrottling(t *testing.T) {
+	now := utc.UnixMilli(0)
+	defer utc.MockNowFn(func() utc.UTC { return now })()
+
+	logger := log.New(
+		&log.Config{
+			Handler: "memory",
+			Level:   "trace",
+		})
+	handler := logger.Handler().(*memory.Handler)
+
+	throttled := logger.Throttle("throttle", 100*time.Millisecond)
+
+	for _, fn := range []func(string, ...any){throttled.Error, throttled.Warn, throttled.Info, throttled.Debug, throttled.Trace} {
+		t.Run(path.Ext(runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()), func(t *testing.T) {
+			for i := 0; i < 10; i++ {
+				fn("test", "attempt", i+1)
+			}
+			require.Len(t, handler.Entries, 1)
+
+			now = now.Add(200 * time.Millisecond)
+			fn("test", "attempt", 11)
+			require.Len(t, handler.Entries, 2)
+
+			// prepare for next test
+			now = now.Add(200 * time.Millisecond)
+			handler.Entries = nil
+		})
+	}
 }
