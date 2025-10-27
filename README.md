@@ -107,11 +107,11 @@ This obviously only needs to be done once at application startup. The configurat
 See [the log configuration sample](sample/config/log_config_sample.go)
 
 
-#### Log Handlers
+### Log Handlers
 
 The following log handlers are available:
 
-##### text
+#### text
 
 A handler for text-based log files:
 
@@ -123,7 +123,7 @@ A handler for text-based log files:
 2018-03-02T15:23:04.317Z INFO  account created           account_id=456789 account_name=Another Test Account logger=/eluvio/log/sample
 ```
 
-##### console
+#### console
 
 A handler for output to the terminal with coloring:
 
@@ -135,7 +135,7 @@ A handler for output to the terminal with coloring:
    1.565 INFO  account created           account_id=456789 account_name=Another Test Account logger=/eluvio/log/sample
 ```
 
-##### json
+#### json
 
 A handler emitting json objects:
 
@@ -198,11 +198,11 @@ And pretty printed:
 }
 ```
 
-##### discard
+#### discard
 
 A handler that discards all output.
 
-#### Logging to Files
+### Logging to Files
 
 In order to write logs to a file, with automatic roll-over based on size and/or time, configure it accordingly:
 
@@ -222,4 +222,27 @@ In order to write logs to a file, with automatic roll-over based on size and/or 
 ```
 
 File logging is implemented by the 3rd-party library [lumberjack](https://github.com/natefinch/lumberjack#type-logger). See their documentation for an explanation of all configuration parameters.
+
+### Log Throttling
+
+Certain situations might require throttling the output of log messages in order to prevent log pollution. This is especially true for log statements in tight loops with uncontrollable frequency, for example when the recurrence is mandated by a configuration option. Throttling can be achieved by using the `Throttle` function:
+
+```go 
+for {
+	...
+	log.Throttle("connect").Debug("failed to connect", "error", err, "attempt", attempt)
+	...
+}
+```
+
+The `Throttle` function expects a throttling key as first argument ("connect" in the example above) that is used to identify "similar" messages that may be eliminated if occurring multiple times during the throttle period. The throttle period is 5 seconds by default, but may be configured with an optional second argument:
+
+```go 
+authLog := log.Throttle("authenticate", time.Second)
+for {
+	...
+	authLog.Debug("failed to authenticate", "error", err)
+    ...
+}
+```
 

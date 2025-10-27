@@ -7,7 +7,7 @@ import (
 	"github.com/eluv-io/utc-go"
 )
 
-func ExampleHandler() {
+func Example_rawHandler() {
 	defer utc.MockNow(utc.UnixMilli(0))()
 
 	fls := false
