@@ -60,30 +60,34 @@ type throttledLog struct {
 }
 
 func (f *throttledLog) Trace(msg string, kv ...any) {
-	f.throttle(f.logger.Trace, msg, kv...)
+	f.throttle(f.logger.IsTrace, f.logger.Trace, msg, kv...)
 }
 
 func (f *throttledLog) Debug(msg string, kv ...any) {
-	f.throttle(f.logger.Debug, msg, kv...)
+	f.throttle(f.logger.IsDebug, f.logger.Debug, msg, kv...)
 }
 
 func (f *throttledLog) Info(msg string, kv ...any) {
-	f.throttle(f.logger.Info, msg, kv...)
+	f.throttle(f.logger.IsInfo, f.logger.Info, msg, kv...)
 }
 
 func (f *throttledLog) Warn(msg string, kv ...any) {
-	f.throttle(f.logger.Warn, msg, kv...)
+	f.throttle(f.logger.IsWarn, f.logger.Warn, msg, kv...)
 }
 
 func (f *throttledLog) Error(msg string, kv ...any) {
-	f.throttle(f.logger.Error, msg, kv...)
+	f.throttle(f.logger.IsError, f.logger.Error, msg, kv...)
 }
 
 func (f *throttledLog) Fatal(msg string, kv ...any) {
-	f.throttle(f.logger.Fatal, msg, kv...)
+	f.logger.Fatal(msg, kv...)
 }
 
-func (f *throttledLog) throttle(logFn func(msg string, kv ...any), msg string, kv ...any) {
+func (f *throttledLog) throttle(isFn func() bool, logFn func(msg string, kv ...any), msg string, kv ...any) {
+	if !isFn() {
+		return
+	}
+
 	skip := false
 	f.mu.Lock()
 	if f.last.IsZero() {
