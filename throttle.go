@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 
-	apex "github.com/eluv-io/apexlog-go"
 	"github.com/eluv-io/utc-go"
 )
 
@@ -22,7 +21,7 @@ type throttleFactory struct {
 	cache map[string]Throttled // throttle key -> Throttled
 }
 
-func (f *throttleFactory) get(logger *apex.Logger, key string, duration ...time.Duration) Throttled {
+func (f *throttleFactory) get(logger *logger, key string, duration ...time.Duration) Throttled {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -42,10 +41,10 @@ func (f *throttleFactory) get(logger *apex.Logger, key string, duration ...time.
 }
 
 // newThrottledLog creates a log decorator for throttling similar log entries.
-func newThrottledLog(logger *apex.Logger, period time.Duration) apex.Interface {
+func newThrottledLog(logger *logger, period time.Duration) Throttled {
 	return &throttledLog{
 		period: period,
-		Logger: logger,
+		logger: logger,
 	}
 }
 
@@ -53,35 +52,35 @@ func newThrottledLog(logger *apex.Logger, period time.Duration) apex.Interface {
 // application by specifying a key/value pair in the log statement, where the key corresponds to the configured
 // throttling key and the value matches that of "similar" statements.
 type throttledLog struct {
+	logger *logger
 	period time.Duration
-	*apex.Logger
-	mu    sync.Mutex
-	count int
-	last  utc.UTC
+	mu     sync.Mutex
+	count  int
+	last   utc.UTC
 }
 
 func (f *throttledLog) Trace(msg string, kv ...any) {
-	f.throttle(f.Logger.Trace, msg, kv...)
+	f.throttle(f.logger.Trace, msg, kv...)
 }
 
 func (f *throttledLog) Debug(msg string, kv ...any) {
-	f.throttle(f.Logger.Debug, msg, kv...)
+	f.throttle(f.logger.Debug, msg, kv...)
 }
 
 func (f *throttledLog) Info(msg string, kv ...any) {
-	f.throttle(f.Logger.Info, msg, kv...)
+	f.throttle(f.logger.Info, msg, kv...)
 }
 
 func (f *throttledLog) Warn(msg string, kv ...any) {
-	f.throttle(f.Logger.Warn, msg, kv...)
+	f.throttle(f.logger.Warn, msg, kv...)
 }
 
 func (f *throttledLog) Error(msg string, kv ...any) {
-	f.throttle(f.Logger.Error, msg, kv...)
+	f.throttle(f.logger.Error, msg, kv...)
 }
 
 func (f *throttledLog) Fatal(msg string, kv ...any) {
-	f.throttle(f.Logger.Fatal, msg, kv...)
+	f.throttle(f.logger.Fatal, msg, kv...)
 }
 
 func (f *throttledLog) throttle(logFn func(msg string, kv ...any), msg string, kv ...any) {

@@ -27,7 +27,7 @@ func ExampleLog_throttle() {
 
 	// Output:
 	//
-	// 1970-01-01T00:00:00.000Z WARN  failed to connect         attempt=1 error=connect error
-	// 1970-01-01T00:00:00.100Z WARN  failed to connect         attempt=11 suppressed=9 throttle_period=100ms error=connect error
-	// 1970-01-01T00:00:00.200Z WARN  failed to connect         attempt=21 suppressed=9 throttle_period=100ms error=connect error
+	// 1970-01-01T00:00:00.000Z WARN  failed to connect         logger=/ attempt=1 error=connect error
+	// 1970-01-01T00:00:00.100Z WARN  failed to connect         logger=/ attempt=11 suppressed=9 throttle_period=100ms error=connect error
+	// 1970-01-01T00:00:00.200Z WARN  failed to connect         logger=/ attempt=21 suppressed=9 throttle_period=100ms error=connect error
 }
