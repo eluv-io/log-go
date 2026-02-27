@@ -48,6 +48,22 @@ import (
 	apex "github.com/eluv-io/apexlog-go"
 )
 
+type ILog interface {
+	Trace(msg string, kv ...interface{})
+	Debug(msg string, kv ...interface{})
+	Info(msg string, kv ...interface{})
+	Warn(msg string, kv ...interface{})
+	Error(msg string, kv ...interface{})
+	Fatal(msg string, kv ...interface{})
+	IsTrace() bool
+	IsDebug() bool
+	IsInfo() bool
+	IsWarn() bool
+	IsError() bool
+	IsFatal() bool
+	Throttle(key string, period ...time.Duration) Throttled
+}
+
 // New creates a new root Logger
 func New(c *Config) *Log {
 	return newLog(c, defaultFields(c, "/"), nil)
@@ -214,7 +230,7 @@ func (l *Log) SetFatal() {
 //	1970-01-01T00:00:01.000Z WARN  failed to connect         attempt=11 suppressed=9 throttle_period=1s error=connect error
 //	1970-01-01T00:00:02.000Z WARN  failed to connect         attempt=21 suppressed=9 throttle_period=1s error=connect error
 func (l *Log) Throttle(key string, period ...time.Duration) Throttled {
-	return l.get().throttle(key, period...)
+	return l.get().throttle(l, key, period...)
 }
 
 func (l *Log) getLogRoot() *logRoot {
