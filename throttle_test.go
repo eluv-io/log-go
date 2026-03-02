@@ -323,7 +323,7 @@ func TestThrottle_Reconfig(t *testing.T) {
 
 	throttled := logger.Throttle("key")
 
-	// First message is logged
+	// First message is ignored
 	throttled.Debug("debug ignored")
 	require.Len(t, handler.Entries, 0)
 

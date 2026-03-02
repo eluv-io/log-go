@@ -33,7 +33,7 @@ func (f *throttleFactory) get(log *Log, key string, duration ...time.Duration) T
 	return tl
 }
 
-// newThrottledLog creates a log decorator for throttling similar log entries.
+// newThrottledLog creates a log decorator for throttling log entries.
 func newThrottledLog(log *Log, period time.Duration) Throttled {
 	return &throttledLog{
 		period: period,
@@ -41,9 +41,8 @@ func newThrottledLog(log *Log, period time.Duration) Throttled {
 	}
 }
 
-// newThrottledLog is a log decorator that throttles similar log entries. Similarity is explicitly signalled by the
-// application by specifying a key/value pair in the log statement, where the key corresponds to the configured
-// throttling key and the value matches that of "similar" statements.
+// throttledLog is a log decorator that throttles log entries. It logs at most one entry per period, indicating how many
+// entries were suppressed in the previous period.
 type throttledLog struct {
 	log    *Log
 	period time.Duration
