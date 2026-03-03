@@ -154,8 +154,8 @@ func (l *logger) fields(args []interface{}) []interface{} {
 	return a
 }
 
-func (l *logger) throttle(key string, duration ...time.Duration) Throttled {
-	return l.throttled.get(l, key, duration...)
+func (l *logger) throttle(log *Log, key string, duration ...time.Duration) Throttled {
+	return l.throttled.get(log, key, duration...)
 }
 
 // goID returns the goroutine id of current goroutine

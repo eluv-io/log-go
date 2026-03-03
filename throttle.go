@@ -7,21 +7,14 @@ import (
 	"github.com/eluv-io/utc-go"
 )
 
-type Throttled interface {
-	Trace(msg string, kv ...interface{})
-	Debug(msg string, kv ...interface{})
-	Info(msg string, kv ...interface{})
-	Warn(msg string, kv ...interface{})
-	Error(msg string, kv ...interface{})
-	Fatal(msg string, kv ...interface{})
-}
+type Throttled = ILog
 
 type throttleFactory struct {
 	mu    sync.Mutex
 	cache map[string]Throttled // throttle key -> Throttled
 }
 
-func (f *throttleFactory) get(logger *logger, key string, duration ...time.Duration) Throttled {
+func (f *throttleFactory) get(log *Log, key string, duration ...time.Duration) Throttled {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -34,73 +27,100 @@ func (f *throttleFactory) get(logger *logger, key string, duration ...time.Durat
 		if len(duration) > 0 {
 			dur = duration[0]
 		}
-		tl = newThrottledLog(logger, dur)
+		tl = newThrottledLog(log, dur)
 		f.cache[key] = tl
 	}
 	return tl
 }
 
-// newThrottledLog creates a log decorator for throttling similar log entries.
-func newThrottledLog(logger *logger, period time.Duration) Throttled {
+// newThrottledLog creates a log decorator for throttling log entries.
+func newThrottledLog(log *Log, period time.Duration) Throttled {
 	return &throttledLog{
 		period: period,
-		logger: logger,
+		log:    log,
 	}
 }
 
-// newThrottledLog is a log decorator that throttles similar log entries. Similarity is explicitly signalled by the
-// application by specifying a key/value pair in the log statement, where the key corresponds to the configured
-// throttling key and the value matches that of "similar" statements.
+// throttledLog is a log decorator that throttles log entries. It logs at most one entry per period, indicating how many
+// entries were suppressed in the previous period.
 type throttledLog struct {
-	logger *logger
+	log    *Log
 	period time.Duration
 	mu     sync.Mutex
 	count  int
 	last   utc.UTC
 }
 
-func (f *throttledLog) Trace(msg string, kv ...any) {
-	f.throttle(f.logger.IsTrace, f.logger.Trace, msg, kv...)
+func (l *throttledLog) Throttle(key string, period ...time.Duration) Throttled {
+	return l.log.Throttle(key, period...)
 }
 
-func (f *throttledLog) Debug(msg string, kv ...any) {
-	f.throttle(f.logger.IsDebug, f.logger.Debug, msg, kv...)
+func (l *throttledLog) IsTrace() bool {
+	return l.log.IsTrace()
 }
 
-func (f *throttledLog) Info(msg string, kv ...any) {
-	f.throttle(f.logger.IsInfo, f.logger.Info, msg, kv...)
+func (l *throttledLog) IsDebug() bool {
+	return l.log.IsDebug()
 }
 
-func (f *throttledLog) Warn(msg string, kv ...any) {
-	f.throttle(f.logger.IsWarn, f.logger.Warn, msg, kv...)
+func (l *throttledLog) IsInfo() bool {
+	return l.log.IsInfo()
 }
 
-func (f *throttledLog) Error(msg string, kv ...any) {
-	f.throttle(f.logger.IsError, f.logger.Error, msg, kv...)
+func (l *throttledLog) IsWarn() bool {
+	return l.log.IsWarn()
 }
 
-func (f *throttledLog) Fatal(msg string, kv ...any) {
-	f.logger.Fatal(msg, kv...)
+func (l *throttledLog) IsError() bool {
+	return l.log.IsError()
 }
 
-func (f *throttledLog) throttle(isFn func() bool, logFn func(msg string, kv ...any), msg string, kv ...any) {
+func (l *throttledLog) IsFatal() bool {
+	return l.log.IsFatal()
+}
+
+func (l *throttledLog) Trace(msg string, kv ...any) {
+	l.throttle(l.log.IsTrace, l.log.Trace, msg, kv...)
+}
+
+func (l *throttledLog) Debug(msg string, kv ...any) {
+	l.throttle(l.log.IsDebug, l.log.Debug, msg, kv...)
+}
+
+func (l *throttledLog) Info(msg string, kv ...any) {
+	l.throttle(l.log.IsInfo, l.log.Info, msg, kv...)
+}
+
+func (l *throttledLog) Warn(msg string, kv ...any) {
+	l.throttle(l.log.IsWarn, l.log.Warn, msg, kv...)
+}
+
+func (l *throttledLog) Error(msg string, kv ...any) {
+	l.throttle(l.log.IsError, l.log.Error, msg, kv...)
+}
+
+func (l *throttledLog) Fatal(msg string, kv ...any) {
+	l.log.Fatal(msg, kv...)
+}
+
+func (l *throttledLog) throttle(isFn func() bool, logFn func(msg string, kv ...any), msg string, kv ...any) {
 	if !isFn() {
 		return
 	}
 
 	skip := false
-	f.mu.Lock()
-	if f.last.IsZero() {
-		f.last = utc.Now()
-	} else if utc.Since(f.last) >= f.period {
-		kv = append(kv, "suppressed", f.count, "throttle_period", f.period)
-		f.count = 0
-		f.last = utc.Now()
+	l.mu.Lock()
+	if l.last.IsZero() {
+		l.last = utc.Now()
+	} else if utc.Since(l.last) >= l.period {
+		kv = append(kv, "suppressed", l.count, "throttle_period", l.period)
+		l.count = 0
+		l.last = utc.Now()
 	} else {
-		f.count++
+		l.count++
 		skip = true
 	}
-	f.mu.Unlock()
+	l.mu.Unlock()
 	if skip {
 		return
 	}
