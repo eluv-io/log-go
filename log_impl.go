@@ -60,7 +60,6 @@ type logRoot struct {
 	named     map[string]*Log // named contains all named logs
 	def       *Log            // def is the default Log using apex's default Log instance
 	defConfig *Config         // defConfig is the default log configuration
-	metrics   Metrics         // metrics
 }
 
 func (r *logRoot) sameConfig(c *Config) bool {
