@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	apex "github.com/eluv-io/apexlog-go"
+	"github.com/eluv-io/utc-go"
 	"github.com/rs/zerolog"
 )
 
@@ -63,13 +65,22 @@ func apexToZerologLevel(l apex.Level) zerolog.Level {
 	}
 }
 
+// utcMillisTimestamp is a zerolog hook that appends a UTC timestamp with millisecond precision to
+// every event. It uses utc.Now() as the time source, which is mockable in tests via utc.MockNowFn.
+type utcMillisTimestamp struct{}
+
+func (h utcMillisTimestamp) Run(e *zerolog.Event, _ zerolog.Level, _ string) {
+	e.Str(zerolog.TimestampFieldName, utc.Now().String())
+}
+
 // newZerologLogger creates a zerolog.Logger that writes to w. The output format is configured to
 // approximate the given apex handler type so that fast-path and regular-path output are visually
 // consistent. For text and raw handlers a ConsoleWriter is used; for console a coloured
 // ConsoleWriter is used; for all other handlers (json, discard, memory) output is plain JSON.
 //
-// The logger name field is added to the context for all handler types except console and memory,
-// matching the behaviour of apex's defaultFields.
+// Timestamps are emitted in UTC with millisecond precision via utcMillisTimestamp. The logger
+// name field is added to the context for all handler types except console and memory, matching
+// the behaviour of apex's defaultFields.
 func newZerologLogger(w io.Writer, level apex.Level, handlerType, loggerName string) zerolog.Logger {
 	var zw io.Writer
 	switch handlerType {
@@ -77,6 +88,7 @@ func newZerologLogger(w io.Writer, level apex.Level, handlerType, loggerName str
 		zw = zerolog.ConsoleWriter{
 			Out:           w,
 			TimeFormat:    "2006-01-02T15:04:05.000Z07:00",
+			TimeLocation:  time.UTC,
 			FormatLevel:   zlFormatLevel,
 			FormatMessage: zlFormatMessage,
 		}
@@ -84,6 +96,7 @@ func newZerologLogger(w io.Writer, level apex.Level, handlerType, loggerName str
 		zw = zerolog.ConsoleWriter{
 			Out:           w,
 			TimeFormat:    "2006-01-02T15:04:05.000Z07:00",
+			TimeLocation:  time.UTC,
 			NoColor:       true,
 			FormatLevel:   zlFormatLevel,
 			FormatMessage: zlFormatMessage,
@@ -92,7 +105,7 @@ func newZerologLogger(w io.Writer, level apex.Level, handlerType, loggerName str
 		zw = w
 	}
 
-	zl := zerolog.New(zw).Level(apexToZerologLevel(level)).With().Timestamp().Logger()
+	zl := zerolog.New(zw).Level(apexToZerologLevel(level)).Hook(utcMillisTimestamp{})
 
 	// Mirror apex's defaultFields: logger name is omitted for console and memory handlers.
 	switch handlerType {
