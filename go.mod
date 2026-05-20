@@ -1,12 +1,13 @@
 module github.com/eluv-io/log-go
 
-go 1.19
+go 1.23
 
 require (
 	github.com/eluv-io/apexlog-go v1.9.1-elv4
 	github.com/eluv-io/errors-go v1.0.2
 	github.com/eluv-io/utc-go v1.0.0
 	github.com/modern-go/gls v0.0.0-20220109145502-612d0167dce5
+	github.com/rs/zerolog v1.35.1
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/stretchr/testify v1.8.4
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -17,10 +18,13 @@ require (
 	github.com/eluv-io/stack v1.8.2 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

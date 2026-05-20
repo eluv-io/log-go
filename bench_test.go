@@ -252,3 +252,53 @@ func BenchmarkNoLog(b *testing.B) {
 	})
 
 }
+
+// BenchmarkFastLog benchmarks the zero-allocation *Event() API. For comparison, the existing vararg
+// API (BenchmarkNoLog) shows 28 allocs/op for an enabled discard handler and 1 alloc/op for a
+// disabled level. The fast path achieves 0 allocs/op in both cases.
+//
+// Apple M4 Max:
+// BenchmarkFastLog/info-event-10-fields  5977468    197.7 ns/op    0 B/op    0 allocs/op
+// BenchmarkFastLog/debug-event-disabled  127610260    9.328 ns/op  0 B/op    0 allocs/op
+func BenchmarkFastLog(b *testing.B) {
+	log := New(&Config{
+		Level:   "info",
+		Handler: "discard",
+	})
+
+	b.Run("info-event-10-fields", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			log.InfoEvent().
+				Str("name", "me").
+				Int("count", 1).
+				Int("age", 444).
+				Str("location", "here").
+				Str("town", "valencia").
+				Str("country", "spain").
+				Str("planet", "earth").
+				Int("more_count", 444).
+				Str("other_location", "there").
+				Str("more_location", "more loc").
+				Msg("hi")
+		}
+	})
+
+	b.Run("debug-event-disabled", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			log.DebugEvent().
+				Str("name", "me").
+				Int("count", 1).
+				Int("age", 444).
+				Str("location", "here").
+				Str("town", "valencia").
+				Str("country", "spain").
+				Str("planet", "earth").
+				Int("more_count", 444).
+				Str("other_location", "there").
+				Str("more_location", "more loc").
+				Msg("hi")
+		}
+	})
+}

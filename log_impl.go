@@ -217,8 +217,10 @@ func newLog(c *Config, fields *apex.Fields, parent *Log) *Log {
 	}
 
 	if par != nil && par.config.Handler == c.Handler && reflect.DeepEqual(par.config.File, file) {
-		// re-use the parent's handler if of same type
+		// Re-use the parent's handler if of same type. Also inherit the parent's writer so that
+		// the zerolog fast-path writes to the same destination as the apex handler.
 		handler = par.logger.Handler
+		writer = par.zlWriter
 	} else {
 		metrics().InstanceCreated()
 		if file != nil {
@@ -235,8 +237,10 @@ func newLog(c *Config, fields *apex.Fields, parent *Log) *Log {
 			handler = console.New(writer)
 		case "discard":
 			handler = discard.Default
+			writer = io.Discard
 		case "memory":
 			handler = memory.New()
+			writer = io.Discard
 		case "json":
 			fallthrough
 		default:
@@ -254,6 +258,9 @@ func newLog(c *Config, fields *apex.Fields, parent *Log) *Log {
 		log = apexLogger.WithFields(fields)
 		name, _ = fields.Get("logger").(string)
 	}
+
+	zl := newZerologLogger(writer, level, c.Handler, name)
+
 	ret := &Log{}
 	ret.lw.Store(&logger{
 		log:        log,
@@ -261,6 +268,8 @@ func newLog(c *Config, fields *apex.Fields, parent *Log) *Log {
 		name:       name,
 		config:     c,
 		lumberjack: ljack,
+		zlWriter:   writer,
+		zl:         zl,
 	})
 	return ret
 }

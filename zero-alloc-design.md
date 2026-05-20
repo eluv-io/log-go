@@ -45,11 +45,11 @@ handler. This is unavoidable given the apex data model.
 
 From `bench_test.go` (discard handler, so I/O is excluded):
 
-| Scenario | ns/op | B/op | allocs/op |
-|---|---|---|---|
-| File handler, typical call | ~17,048 | 3,767 | 51 |
-| Discard handler | ~4,302 | 1,849 | 31 |
-| Disabled level (debug on info config) | ~131 | 320 | 1 |
+| Scenario                              | ns/op   | B/op  | allocs/op |
+|---------------------------------------|---------|-------|-----------|
+| File handler, typical call            | ~17,048 | 3,767 | 51        |
+| Discard handler                       | ~4,302  | 1,849 | 31        |
+| Disabled level (debug on info config) | ~131    | 320   | 1         |
 
 Even a disabled log level costs **1 allocation** (the variadic slice). An enabled call through a
 discard handler costs **31 allocations**. No amount of tuning within the current `...interface{}`
@@ -71,6 +71,7 @@ log.Info().Str("user_id", uid).Int("count", n).Msg("logged in")
 ```
 
 How it achieves zero allocations:
+
 - `Event` objects are pooled via `sync.Pool` — no allocation to start a log entry
 - Each typed method (`Str`, `Int`, `Bool`, `Err`, …) appends bytes directly to the buffer — no boxing,
   no intermediate structs
@@ -94,6 +95,7 @@ slog.LogAttrs(ctx, slog.LevelInfo, "logged in",
 Duration) inline without boxing. This is a meaningful improvement over `...interface{}`.
 
 However, slog does **not** achieve 0 allocs/op:
+
 - The `[]slog.Attr` slice passed to the handler is typically heap-allocated
 - Custom `slog.Handler` implementations almost always allocate
 - slog's own documentation does not claim zero allocations; benchmarks show 1–3 allocs/op in typical
@@ -104,14 +106,14 @@ logging library whose explicit goal is zero allocations, slog does not clear the
 
 ### Verdict
 
-| | zerolog | slog |
-|---|---|---|
-| Zero allocs/op (builder path) | Yes | No (1–3 typical) |
-| Typed field methods | Yes | Yes |
-| Standard library | No | Yes |
-| Ecosystem / adoption | Large, mature | Growing |
-| `io.Writer`-based output | Yes | Yes (via handler) |
-| Value-type logger (copyable) | Yes | Yes |
+|                               | zerolog       | slog              |
+|-------------------------------|---------------|-------------------|
+| Zero allocs/op (builder path) | Yes           | No (1–3 typical)  |
+| Typed field methods           | Yes           | Yes               |
+| Standard library              | No            | Yes               |
+| Ecosystem / adoption          | Large, mature | Growing           |
+| `io.Writer`-based output      | Yes           | Yes (via handler) |
+| Value-type logger (copyable)  | Yes           | Yes               |
 
 **zerolog is the right choice** for a genuine zero-allocation commitment. slog reduces allocations but
 cannot eliminate them, and introducing it as a backend would not deliver on the stated goal.
@@ -273,11 +275,11 @@ including zap. The quiet upstream is not a practical concern.
 
 The main alternatives, and when to prefer them:
 
-| Option | Rotation trigger | Pros | Cons |
-|---|---|---|---|
-| **lumberjack** (current) | File size / age, in-process | Self-contained, zero ops setup, exposes `Rotate()` | Maintenance-mode upstream; edge cases on Windows |
-| **OS `logrotate` + SIGHUP** | Cron / systemd, out-of-process | Production-grade standard on Linux; no in-process state | Requires ops setup; app must reopen file on signal |
-| **`lestrrat-go/file-rotatelogs`** | Time-based (hourly/daily) | Symlink to current file, clean dated naming | Less maintained; no size-based trigger |
+| Option                            | Rotation trigger               | Pros                                                    | Cons                                               |
+|-----------------------------------|--------------------------------|---------------------------------------------------------|----------------------------------------------------|
+| **lumberjack** (current)          | File size / age, in-process    | Self-contained, zero ops setup, exposes `Rotate()`      | Maintenance-mode upstream; edge cases on Windows   |
+| **OS `logrotate` + SIGHUP**       | Cron / systemd, out-of-process | Production-grade standard on Linux; no in-process state | Requires ops setup; app must reopen file on signal |
+| **`lestrrat-go/file-rotatelogs`** | Time-based (hourly/daily)      | Symlink to current file, clean dated naming             | Less maintained; no size-based trigger             |
 
 For a library that embeds logging in another service, lumberjack remains the right default. If the
 consuming service runs under systemd or in a container with a log aggregator (Loki, Fluentd, Vector,
@@ -291,11 +293,11 @@ phases.
 
 ## Migration Summary
 
-| Phase | What changes | Risk | Backward compatible |
-|---|---|---|---|
-| Phase 1: additive fast path | Add zerolog dep; new `*Event()` methods on `*Log` | Low | Yes — existing API untouched |
-| Phase 2: replace apexlog | Remove apex dep; rewrite handlers as zerolog writers | Medium | Yes — `ILog` interface unchanged |
-| slog backend (not recommended) | Replace apex with slog | Low | Yes | 
+| Phase                          | What changes                                         | Risk   | Backward compatible              |
+|--------------------------------|------------------------------------------------------|--------|----------------------------------|
+| Phase 1: additive fast path    | Add zerolog dep; new `*Event()` methods on `*Log`    | Low    | Yes — existing API untouched     |
+| Phase 2: replace apexlog       | Remove apex dep; rewrite handlers as zerolog writers | Medium | Yes — `ILog` interface unchanged |
+| slog backend (not recommended) | Replace apex with slog                               | Low    | Yes                              | 
 
 Phase 1 can be shipped immediately and gives callers an opt-in zero-allocation path. Phase 2 is the
 right long-term destination once the zerolog integration is validated in real workloads.
