@@ -2,12 +2,14 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"reflect"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/modern-go/gls"
+	"github.com/rs/zerolog"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	apex "github.com/eluv-io/apexlog-go"
@@ -22,6 +24,8 @@ type logger struct {
 	config     *Config            // the current config
 	lumberjack *lumberjack.Logger // io.WriteCloser that writes to the specified filename.
 	throttled  throttleFactory    // factory for throttled loggers
+	zlWriter   io.Writer          // underlying writer shared with the zerolog logger
+	zl         zerolog.Logger     // zero-allocation fast-path logger
 }
 
 func copyApexLogger(log apex.Interface) (apex.Interface, *apex.Logger) {
@@ -48,6 +52,8 @@ func (l *logger) copy(modFns ...func(l *logger)) *logger {
 		name:       l.name,
 		config:     l.config,
 		lumberjack: l.lumberjack,
+		zlWriter:   l.zlWriter,
+		zl:         l.zl,
 	}
 	ret.log, ret.logger = copyApexLogger(l.log)
 	for _, fn := range modFns {

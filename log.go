@@ -241,6 +241,7 @@ func (l *Log) setLogLevel(level apex.Level) {
 	setLevel := func(logCopy *logger) {
 		logCopy.logger.Level = level
 		logCopy.config.Level = level.String()
+		logCopy.zl = logCopy.zl.Level(apexToZerologLevel(level))
 	}
 	logName := l.get().name
 
