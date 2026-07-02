@@ -70,7 +70,15 @@ func apexToZerologLevel(l apex.Level) zerolog.Level {
 type utcMillisTimestamp struct{}
 
 func (h utcMillisTimestamp) Run(e *zerolog.Event, _ zerolog.Level, _ string) {
-	e.Str(zerolog.TimestampFieldName, utc.Now().String())
+	// Use e.Time rather than e.Str(..., utc.Now().String()): the latter builds an intermediate Go
+	// string (a 24-byte heap allocation per event), while e.Time appends the formatted time directly
+	// into the event's buffer with zero allocations, using zerolog.TimeFieldFormat (see init below).
+	e.Time(zerolog.TimestampFieldName, utc.Now().Time)
+}
+
+func init() {
+	// Emit timestamps in ISO 8601 UTC with millisecond precision, matching utc.UTC.String().
+	zerolog.TimeFieldFormat = utc.ISO8601
 }
 
 // newZerologLogger creates a zerolog.Logger that writes to w. The output format is configured to

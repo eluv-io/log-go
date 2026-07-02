@@ -82,34 +82,34 @@ func TestSimpleLog(b *testing.T) {
 }
 
 // -- before refactor --
-//BenchmarkLog/file-config-8         	   50097	     22658 ns/op	   10931 B/op	      49 allocs/op
-//BenchmarkLog/file-config-8         	   44073	     23697 ns/op	    9084 B/op	      48 allocs/op
+// BenchmarkLog/file-config-8         	   50097	     22658 ns/op	   10931 B/op	      49 allocs/op
+// BenchmarkLog/file-config-8         	   44073	     23697 ns/op	    9084 B/op	      48 allocs/op
 //
 // -- after refactor --
-//BenchmarkLog/file-config-8         	   80040	     13850 ns/op	    5796 B/op	      42 allocs/op
-//BenchmarkLog/file-config-8         	   86277	     14392 ns/op	    4537 B/op	      42 allocs/op
+// BenchmarkLog/file-config-8         	   80040	     13850 ns/op	    5796 B/op	      42 allocs/op
+// BenchmarkLog/file-config-8         	   86277	     14392 ns/op	    4537 B/op	      42 allocs/op
 //
 // limited to 10 fields (for comparison with https://github.com/uber-go/zap#performance)
-//BenchmarkLog/file-config-8         	   95760	     12208 ns/op	    3914 B/op	      51 allocs/op
-//BenchmarkLog/file-config-10-fields-8     156030	      7501 ns/op	    1153 B/op	      24 allocs/op
+// BenchmarkLog/file-config-8         	   95760	     12208 ns/op	    3914 B/op	      51 allocs/op
+// BenchmarkLog/file-config-10-fields-8     156030	      7501 ns/op	    1153 B/op	      24 allocs/op
 //
-//BenchmarkLog/file-config-8         	   93165	     12167 ns/op	    3888 B/op	      51 allocs/op
-//BenchmarkLog/file-config-10-fields-8     180730	      7061 ns/op	    1153 B/op	      24 allocs/op
+// BenchmarkLog/file-config-8         	   93165	     12167 ns/op	    3888 B/op	      51 allocs/op
+// BenchmarkLog/file-config-10-fields-8     180730	      7061 ns/op	    1153 B/op	      24 allocs/op
 //
 // -- jan 2024 --
 // commit: master@017ba5a5be4d5227b9f025cff995beab928d7b75
-//BenchmarkLog/file-config-8         	   71143	     17048 ns/op	    3767 B/op	      51 allocs/op
-//BenchmarkLog/file-config-10-fields-8     125799	      9259 ns/op	    1153 B/op	      24 allocs/op
+// BenchmarkLog/file-config-8         	   71143	     17048 ns/op	    3767 B/op	      51 allocs/op
+// BenchmarkLog/file-config-10-fields-8     125799	      9259 ns/op	    1153 B/op	      24 allocs/op
 //
 // -- with no mod
-//BenchmarkLog/file-config-8         	   71025	     17209 ns/op	    3789 B/op	      51 allocs/op
-//BenchmarkLog/file-config-10-fields-8     125124	      9562 ns/op	    1153 B/op	      24 allocs/op
+// BenchmarkLog/file-config-8         	   71025	     17209 ns/op	    3789 B/op	      51 allocs/op
+// BenchmarkLog/file-config-10-fields-8     125124	      9562 ns/op	    1153 B/op	      24 allocs/op
 // -- with atomic wrapper
-//BenchmarkLog/file-config-8         	   69007	     17866 ns/op	    3798 B/op	      51 allocs/op
-//BenchmarkLog/file-config-10-fields-8     122730	     10282 ns/op	    1153 B/op	      24 allocs/op
+// BenchmarkLog/file-config-8         	   69007	     17866 ns/op	    3798 B/op	      51 allocs/op
+// BenchmarkLog/file-config-10-fields-8     122730	     10282 ns/op	    1153 B/op	      24 allocs/op
 // -- with atomic wrapper (2)
-//BenchmarkLog/file-config-8         	   72332	     16735 ns/op	    3793 B/op	      51 allocs/op
-//BenchmarkLog/file-config-10-fields-8     135945	      8894 ns/op	    1153 B/op	      24 allocs/op
+// BenchmarkLog/file-config-8         	   72332	     16735 ns/op	    3793 B/op	      51 allocs/op
+// BenchmarkLog/file-config-10-fields-8     135945	      8894 ns/op	    1153 B/op	      24 allocs/op
 
 func BenchmarkLog(b *testing.B) {
 	path, err := os.MkdirTemp(os.TempDir(), "benchmarkLog")
